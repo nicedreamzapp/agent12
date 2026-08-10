@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+sandboxes/
+logs/
+.DS_Store
+.env

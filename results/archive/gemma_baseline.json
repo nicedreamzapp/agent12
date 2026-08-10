@@ -1,0 +1,70 @@
+{
+  "run": "gemma_baseline",
+  "model": "divinetribe/gemma-4-31b-it-abliterated-4bit-mlx",
+  "dialect": "prompted",
+  "prompt_file": "",
+  "load_s": 9.3,
+  "tasks": {
+    "t01_create_run": {
+      "pass": true,
+      "seconds": 3.2,
+      "error": ""
+    },
+    "t02_fix_bug": {
+      "pass": true,
+      "seconds": 11.1,
+      "error": ""
+    },
+    "t03_rename_across_files": {
+      "pass": true,
+      "seconds": 17.2,
+      "error": ""
+    },
+    "t04_extract_value": {
+      "pass": true,
+      "seconds": 4.6,
+      "error": ""
+    },
+    "t05_find_marker": {
+      "pass": true,
+      "seconds": 6.7,
+      "error": ""
+    },
+    "t06_precise_append": {
+      "pass": true,
+      "seconds": 5.5,
+      "error": ""
+    },
+    "t07_write_json": {
+      "pass": true,
+      "seconds": 4.9,
+      "error": ""
+    },
+    "t08_tricky_escapes": {
+      "pass": false,
+      "seconds": 11.3,
+      "error": ""
+    },
+    "t09_count_files": {
+      "pass": true,
+      "seconds": 5.2,
+      "error": ""
+    },
+    "t10_extract_constant": {
+      "pass": true,
+      "seconds": 13.6,
+      "error": ""
+    },
+    "t11_csv_sum": {
+      "pass": true,
+      "seconds": 8.1,
+      "error": ""
+    },
+    "t12_delete_right_file": {
+      "pass": true,
+      "seconds": 4.8,
+      "error": ""
+    }
+  },
+  "score": "11/12"
+}

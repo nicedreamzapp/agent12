@@ -1,0 +1,70 @@
+{
+  "run": "qwen36_baseline",
+  "model": "lmstudio-community/Qwen3.6-35B-A3B-MLX-8bit",
+  "dialect": "native",
+  "prompt_file": "",
+  "load_s": 3.7,
+  "tasks": {
+    "t01_create_run": {
+      "pass": true,
+      "seconds": 3.6,
+      "error": ""
+    },
+    "t02_fix_bug": {
+      "pass": true,
+      "seconds": 6.4,
+      "error": ""
+    },
+    "t03_rename_across_files": {
+      "pass": true,
+      "seconds": 10.3,
+      "error": ""
+    },
+    "t04_extract_value": {
+      "pass": true,
+      "seconds": 2.7,
+      "error": ""
+    },
+    "t05_find_marker": {
+      "pass": true,
+      "seconds": 3.1,
+      "error": ""
+    },
+    "t06_precise_append": {
+      "pass": true,
+      "seconds": 3.8,
+      "error": ""
+    },
+    "t07_write_json": {
+      "pass": true,
+      "seconds": 3.1,
+      "error": ""
+    },
+    "t08_tricky_escapes": {
+      "pass": true,
+      "seconds": 4.5,
+      "error": ""
+    },
+    "t09_count_files": {
+      "pass": true,
+      "seconds": 2.4,
+      "error": ""
+    },
+    "t10_extract_constant": {
+      "pass": true,
+      "seconds": 6.5,
+      "error": ""
+    },
+    "t11_csv_sum": {
+      "pass": true,
+      "seconds": 3.4,
+      "error": ""
+    },
+    "t12_delete_right_file": {
+      "pass": true,
+      "seconds": 3.1,
+      "error": ""
+    }
+  },
+  "score": "12/12"
+}

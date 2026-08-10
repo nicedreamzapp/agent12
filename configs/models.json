@@ -1,0 +1,62 @@
+{
+  "qwen3-coder-30b": {
+    "adapter": "anvil",
+    "display": "Qwen3-Coder-30B-A3B (MLX 8-bit)",
+    "env": {
+      "AGENT_MODEL": "lmstudio-community/Qwen3-Coder-30B-A3B-Instruct-MLX-8bit",
+      "AGENT_DIALECT": "native"
+    }
+  },
+  "qwen3.6-35b": {
+    "adapter": "anvil",
+    "display": "Qwen3.6-35B-A3B (MLX 8-bit)",
+    "env": {
+      "AGENT_MODEL": "lmstudio-community/Qwen3.6-35B-A3B-MLX-8bit",
+      "AGENT_DIALECT": "native"
+    }
+  },
+  "gemma-4-31b": {
+    "adapter": "anvil",
+    "display": "Gemma 4 31B (MLX 4-bit)",
+    "env": {
+      "AGENT_MODEL": "divinetribe/gemma-4-31b-it-abliterated-4bit-mlx",
+      "AGENT_DIALECT": "prompted",
+      "AGENT_PROMPT_FILE": "prompts/gemma4.md"
+    }
+  },
+  "deepseek-v4-flash-0731": {
+    "adapter": "anvil",
+    "display": "DeepSeek V4 Flash 284B-MoE (ds4.c 2-bit, 0731 imatrix)",
+    "_note": "ds4-server must be up on :8000 with the 0731 imatrix gguf symlinked as ds4flash.gguf",
+    "env": {
+      "AGENT_MODEL": "deepseek-v4-flash",
+      "AGENT_BACKEND": "http",
+      "AGENT_BASE_URL": "http://127.0.0.1:8000",
+      "AGENT_AUTH_TOKEN": "dsv4-local",
+      "AGENT_LEASE_GB": "0"
+    }
+  },
+  "deepseek-v4-flash-orig": {
+    "adapter": "anvil",
+    "display": "DeepSeek V4 Flash 284B-MoE (ds4.c 2-bit, original)",
+    "_note": "ds4-server must be up on :8000 with the original chat-v2 gguf symlinked as ds4flash.gguf",
+    "env": {
+      "AGENT_MODEL": "deepseek-v4-flash",
+      "AGENT_BACKEND": "http",
+      "AGENT_BASE_URL": "http://127.0.0.1:8000",
+      "AGENT_AUTH_TOKEN": "dsv4-local",
+      "AGENT_LEASE_GB": "0"
+    }
+  },
+  "claude-cloud-reference": {
+    "adapter": "anvil",
+    "display": "Claude (cloud reference — same engine, remote model)",
+    "_note": "cloud comparison point, clearly labeled; set AGENT_AUTH_TOKEN to a real key before running",
+    "env": {
+      "AGENT_MODEL": "claude-sonnet-5",
+      "AGENT_BACKEND": "http",
+      "AGENT_BASE_URL": "https://api.anthropic.com",
+      "AGENT_LEASE_GB": "0"
+    }
+  }
+}

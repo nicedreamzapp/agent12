@@ -1,0 +1,70 @@
+{
+  "run": "gemma_tuned",
+  "model": "divinetribe/gemma-4-31b-it-abliterated-4bit-mlx",
+  "dialect": "prompted",
+  "prompt_file": "/Users/dtribe/Desktop/PROJECTS/Local AI Setup/agent/prompts/gemma4.md",
+  "load_s": 3.4,
+  "tasks": {
+    "t01_create_run": {
+      "pass": true,
+      "seconds": 5.2,
+      "error": ""
+    },
+    "t02_fix_bug": {
+      "pass": true,
+      "seconds": 11.0,
+      "error": ""
+    },
+    "t03_rename_across_files": {
+      "pass": true,
+      "seconds": 17.4,
+      "error": ""
+    },
+    "t04_extract_value": {
+      "pass": true,
+      "seconds": 4.6,
+      "error": ""
+    },
+    "t05_find_marker": {
+      "pass": true,
+      "seconds": 4.9,
+      "error": ""
+    },
+    "t06_precise_append": {
+      "pass": true,
+      "seconds": 5.6,
+      "error": ""
+    },
+    "t07_write_json": {
+      "pass": true,
+      "seconds": 5.7,
+      "error": ""
+    },
+    "t08_tricky_escapes": {
+      "pass": true,
+      "seconds": 17.5,
+      "error": ""
+    },
+    "t09_count_files": {
+      "pass": true,
+      "seconds": 5.6,
+      "error": ""
+    },
+    "t10_extract_constant": {
+      "pass": true,
+      "seconds": 14.2,
+      "error": ""
+    },
+    "t11_csv_sum": {
+      "pass": true,
+      "seconds": 21.0,
+      "error": ""
+    },
+    "t12_delete_right_file": {
+      "pass": true,
+      "seconds": 4.9,
+      "error": ""
+    }
+  },
+  "score": "12/12"
+}
