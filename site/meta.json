@@ -4,40 +4,40 @@
   "rows": {
     "qwen3-coder-30b": {
       "display": "Qwen3-Coder-30B-A3B (MLX 8-bit)",
-      "params": "30B MoE, 3B active · native tool calls",
-      "tok_s": null,
+      "params": "30B MoE, 3B active \u00b7 native tool calls",
+      "tok_s": 84.3,
       "easy": "qwen30_easy_v1",
       "hard": "qwen30_hard_v1",
       "kind": "local"
     },
     "qwen3.6-35b": {
       "display": "Qwen3.6-35B-A3B (MLX 8-bit)",
-      "params": "35B MoE, 3B active · native tool calls",
-      "tok_s": null,
+      "params": "35B MoE, 3B active \u00b7 native tool calls",
+      "tok_s": 46.2,
       "easy": "qwen36_easy_v2",
       "hard": "qwen36_hard_v1",
       "kind": "local"
     },
     "gemma-4-31b": {
       "display": "Gemma 4 31B (MLX 4-bit)",
-      "params": "31B dense · prompted-XML dialect",
-      "tok_s": null,
+      "params": "31B dense \u00b7 prompted-XML dialect",
+      "tok_s": 25.6,
       "easy": "gemma_easy_v1",
       "hard": "gemma_hard_v1",
       "kind": "local"
     },
     "deepseek-v4-flash-0731": {
       "display": "DeepSeek V4 Flash (2-bit, 0731 imatrix)",
-      "params": "284B MoE · ds4.c engine",
-      "tok_s": null,
+      "params": "284B MoE \u00b7 ds4.c engine",
+      "tok_s": 8.4,
       "easy": "ds4_0731_easy_v1",
       "hard": "ds4_0731_hard_v1",
       "kind": "local"
     },
     "deepseek-v4-flash-orig": {
-      "display": "DeepSeek V4 Flash (2-bit, original)",
-      "params": "284B MoE · ds4.c engine",
-      "tok_s": null,
+      "display": "DeepSeek V4 Flash (2-bit, original) \u00b7 retired 8/10, weights deleted",
+      "params": "284B MoE \u00b7 ds4.c engine",
+      "tok_s": 8.4,
       "easy": "ds4_orig_easy_v1",
       "hard": "ds4_orig_hard_v1",
       "kind": "local"

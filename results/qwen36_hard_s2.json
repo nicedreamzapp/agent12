@@ -1,0 +1,63 @@
+{
+  "run": "qwen36_hard_s2",
+  "suite": "hard",
+  "adapter": "anvil",
+  "harness_version": "1.0.0",
+  "started_utc": "2026-08-10T09:38:32Z",
+  "load_s": 22.0,
+  "tasks": {
+    "h1_interval_merge": {
+      "pass": false,
+      "seconds": 25.4,
+      "detail": "",
+      "error": ""
+    },
+    "h2_fix_iteration_bug": {
+      "pass": true,
+      "seconds": 9.6,
+      "detail": "",
+      "error": ""
+    },
+    "h3_lru_ttl_cache": {
+      "pass": true,
+      "seconds": 88.7,
+      "detail": "",
+      "error": ""
+    },
+    "h4_csv_no_csv": {
+      "pass": true,
+      "seconds": 12.0,
+      "detail": "",
+      "error": ""
+    },
+    "h5_topo_lex": {
+      "pass": true,
+      "seconds": 4.9,
+      "detail": "",
+      "error": ""
+    },
+    "h6_log_normalize": {
+      "pass": true,
+      "seconds": 15.8,
+      "detail": "",
+      "error": ""
+    },
+    "h7_spec_gauntlet": {
+      "pass": true,
+      "seconds": 15.5,
+      "detail": "10/10",
+      "error": ""
+    },
+    "h8_cache_collision": {
+      "pass": true,
+      "seconds": 11.0,
+      "detail": "",
+      "error": ""
+    }
+  },
+  "model": "lmstudio-community/Qwen3.6-35B-A3B-MLX-8bit",
+  "dialect": "native",
+  "backend": "mlx",
+  "prompt_file": "",
+  "score": "7/8"
+}

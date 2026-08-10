@@ -1,0 +1,87 @@
+{
+  "run": "gemma_easy_s3",
+  "suite": "easy",
+  "adapter": "anvil",
+  "harness_version": "1.0.0",
+  "started_utc": "2026-08-10T10:42:52Z",
+  "load_s": 4.2,
+  "tasks": {
+    "t01_create_run": {
+      "pass": true,
+      "seconds": 5.1,
+      "detail": "",
+      "error": ""
+    },
+    "t02_fix_bug": {
+      "pass": true,
+      "seconds": 12.9,
+      "detail": "",
+      "error": ""
+    },
+    "t03_rename_across_files": {
+      "pass": false,
+      "seconds": 49.1,
+      "detail": "",
+      "error": ""
+    },
+    "t04_extract_value": {
+      "pass": true,
+      "seconds": 5.5,
+      "detail": "",
+      "error": ""
+    },
+    "t05_find_marker": {
+      "pass": true,
+      "seconds": 5.8,
+      "detail": "",
+      "error": ""
+    },
+    "t06_precise_append": {
+      "pass": true,
+      "seconds": 6.5,
+      "detail": "",
+      "error": ""
+    },
+    "t07_write_json": {
+      "pass": true,
+      "seconds": 5.7,
+      "detail": "",
+      "error": ""
+    },
+    "t08_tricky_escapes": {
+      "pass": true,
+      "seconds": 9.5,
+      "detail": "",
+      "error": ""
+    },
+    "t09_count_files": {
+      "pass": true,
+      "seconds": 5.7,
+      "detail": "",
+      "error": ""
+    },
+    "t10_extract_constant": {
+      "pass": true,
+      "seconds": 15.1,
+      "detail": "",
+      "error": ""
+    },
+    "t11_csv_sum": {
+      "pass": true,
+      "seconds": 15.7,
+      "detail": "",
+      "error": ""
+    },
+    "t12_delete_right_file": {
+      "pass": true,
+      "seconds": 5.1,
+      "detail": "",
+      "error": ""
+    }
+  },
+  "model": "divinetribe/gemma-4-31b-it-abliterated-4bit-mlx",
+  "dialect": "prompted",
+  "backend": "mlx",
+  "prompt_file": "/Users/dtribe/bench-llm/agent12/prompts/gemma4.md",
+  "score": "11/12"
+}
