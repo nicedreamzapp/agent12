@@ -1,0 +1,63 @@
+{
+  "run": "gemma_hard_v1",
+  "suite": "hard",
+  "adapter": "anvil",
+  "harness_version": "1.0.0",
+  "started_utc": "2026-08-10T08:33:35Z",
+  "load_s": 3.3,
+  "tasks": {
+    "h1_interval_merge": {
+      "pass": true,
+      "seconds": 43.5,
+      "detail": "",
+      "error": ""
+    },
+    "h2_fix_iteration_bug": {
+      "pass": true,
+      "seconds": 16.2,
+      "detail": "",
+      "error": ""
+    },
+    "h3_lru_ttl_cache": {
+      "pass": true,
+      "seconds": 54.3,
+      "detail": "",
+      "error": ""
+    },
+    "h4_csv_no_csv": {
+      "pass": true,
+      "seconds": 35.0,
+      "detail": "",
+      "error": ""
+    },
+    "h5_topo_lex": {
+      "pass": true,
+      "seconds": 62.9,
+      "detail": "",
+      "error": ""
+    },
+    "h6_log_normalize": {
+      "pass": true,
+      "seconds": 93.3,
+      "detail": "",
+      "error": ""
+    },
+    "h7_spec_gauntlet": {
+      "pass": true,
+      "seconds": 14.8,
+      "detail": "10/10",
+      "error": ""
+    },
+    "h8_cache_collision": {
+      "pass": true,
+      "seconds": 27.9,
+      "detail": "",
+      "error": ""
+    }
+  },
+  "model": "divinetribe/gemma-4-31b-it-abliterated-4bit-mlx",
+  "dialect": "prompted",
+  "backend": "mlx",
+  "prompt_file": "/Users/dtribe/bench-llm/agent12/prompts/gemma4.md",
+  "score": "8/8"
+}

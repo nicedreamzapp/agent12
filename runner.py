@@ -51,7 +51,10 @@ def main():
 
     # suite discipline: temp 0, fixed caps — set BEFORE the adapter imports its engine
     os.environ.setdefault("AGENT_TEMP", "0.0")
-    os.environ.setdefault("AGENT_LEASE_NAME", f"agent12-{args.suite}")
+    # "agent-" prefix required: the forge_guard memory policeman maps this
+    # process to its lease by that prefix; other names get double-charged
+    # and SIGSTOPped as an unregistered hog (learned 2026-08-10, 01:02)
+    os.environ.setdefault("AGENT_LEASE_NAME", f"agent-12-{args.suite}")
     for k, v in suite.ENV.items():
         os.environ.setdefault(k, v)
 

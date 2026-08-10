@@ -14,7 +14,7 @@
       "display": "Qwen3.6-35B-A3B (MLX 8-bit)",
       "params": "35B MoE, 3B active · native tool calls",
       "tok_s": null,
-      "easy": "qwen36_easy_v1",
+      "easy": "qwen36_easy_v2",
       "hard": "qwen36_hard_v1",
       "kind": "local"
     },

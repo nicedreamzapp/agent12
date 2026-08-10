@@ -25,8 +25,11 @@ class AnvilAdapter:
         sys.path.insert(0, ENGINE_DIR)
         import agent  # env must already be set — agent.py reads it at import
         self.agent = agent
-        agent.acquire_seat()
-        self.engine = agent.MLXEngine(agent.MODEL_DEFAULT)
+        if agent.BACKEND == "http":
+            self.engine = agent.HTTPEngine(agent.MODEL_DEFAULT)
+        else:
+            agent.acquire_seat()
+            self.engine = agent.MLXEngine(agent.MODEL_DEFAULT)
 
     def reset(self):
         self.engine.reset()

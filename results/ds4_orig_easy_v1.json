@@ -1,0 +1,87 @@
+{
+  "run": "ds4_orig_easy_v1",
+  "suite": "easy",
+  "adapter": "anvil",
+  "harness_version": "1.0.0",
+  "started_utc": "2026-08-10T08:56:01Z",
+  "load_s": 0.0,
+  "tasks": {
+    "t01_create_run": {
+      "pass": true,
+      "seconds": 23.9,
+      "detail": "",
+      "error": ""
+    },
+    "t02_fix_bug": {
+      "pass": true,
+      "seconds": 42.4,
+      "detail": "",
+      "error": ""
+    },
+    "t03_rename_across_files": {
+      "pass": true,
+      "seconds": 52.7,
+      "detail": "",
+      "error": ""
+    },
+    "t04_extract_value": {
+      "pass": true,
+      "seconds": 19.7,
+      "detail": "",
+      "error": ""
+    },
+    "t05_find_marker": {
+      "pass": true,
+      "seconds": 18.9,
+      "detail": "",
+      "error": ""
+    },
+    "t06_precise_append": {
+      "pass": true,
+      "seconds": 20.2,
+      "detail": "",
+      "error": ""
+    },
+    "t07_write_json": {
+      "pass": true,
+      "seconds": 20.9,
+      "detail": "",
+      "error": ""
+    },
+    "t08_tricky_escapes": {
+      "pass": true,
+      "seconds": 45.5,
+      "detail": "",
+      "error": ""
+    },
+    "t09_count_files": {
+      "pass": true,
+      "seconds": 19.4,
+      "detail": "",
+      "error": ""
+    },
+    "t10_extract_constant": {
+      "pass": true,
+      "seconds": 52.9,
+      "detail": "",
+      "error": ""
+    },
+    "t11_csv_sum": {
+      "pass": true,
+      "seconds": 36.1,
+      "detail": "",
+      "error": ""
+    },
+    "t12_delete_right_file": {
+      "pass": true,
+      "seconds": 23.5,
+      "detail": "",
+      "error": ""
+    }
+  },
+  "model": "deepseek-v4-flash",
+  "dialect": "native",
+  "backend": "http",
+  "prompt_file": "",
+  "score": "12/12"
+}
