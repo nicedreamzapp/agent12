@@ -28,6 +28,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 RESULTS = HERE / "results"
 SITE = HERE / "site"
+OUT = HERE / "docs"
 
 
 def load_run(name):
@@ -66,8 +67,8 @@ def build():
     page = TEMPLATE.replace("{{LOCAL_ROWS}}", "\n".join(local_rows))
     page = page.replace("{{CLOUD_ROWS}}", "\n".join(cloud_rows))
     page = page.replace("{{UPDATED}}", meta.get("updated", ""))
-    (SITE / "index.html").write_text(page)
-    print(f"wrote {SITE / 'index.html'} ({len(local_rows)} local rows, {len(cloud_rows)} cloud)")
+    (OUT / "index.html").write_text(page)
+    print(f"wrote {OUT / 'index.html'} ({len(local_rows)} local rows, {len(cloud_rows)} cloud)")
 
 
 TEMPLATE = """<!doctype html>
@@ -163,8 +164,12 @@ TEMPLATE = """<!doctype html>
       <li>All rows run the same tasks, same caps, same judges, on the stated hardware.</li>
       <li>Cloud rows are labeled reference points, not contestants.</li>
     </ul>
-    <p style="margin-top:1rem;">Tasks, judges, runner, and validation gate are open:
-    methodology + repo links land here at launch. Updated {{UPDATED}}.</p>
+    <p style="margin-top:1rem;">Tasks, judges, runner, and the validation gate are open:
+    <a href="https://github.com/nicedreamzapp/agent12">github.com/nicedreamzapp/agent12</a>
+    · <a href="https://github.com/nicedreamzapp/agent12/blob/main/METHODOLOGY.md">methodology</a>
+    · <a href="https://github.com/nicedreamzapp/agent12/blob/main/CONTAMINATION.md">contamination policy</a>.
+    Cloud reference times include network/API round-trips — that is the honest
+    end-to-end experience. Updated {{UPDATED}}.</p>
   </div>
 </main>
 </body>
