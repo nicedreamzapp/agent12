@@ -8,6 +8,11 @@ function, and delete the *right* backup. Agent-12 measures that by making
 models DO real agent tasks in a sandbox, judged by the filesystem, never by
 their prose.
 
+**Run the winner:** every model on this board plugs straight into
+[Claude Code Local](https://github.com/nicedreamzapp/claude-code-local) — Claude Code,
+100% on-device on Apple Silicon. Live board: [nicedreamzapp.github.io/agent12](https://nicedreamzapp.github.io/agent12/).
+MLX builds of the fighters: [huggingface.co/divinetribe](https://huggingface.co/divinetribe).
+
 ## What makes this benchmark different
 
 1. **It runs on consumer hardware.** Every local row on the scoreboard was

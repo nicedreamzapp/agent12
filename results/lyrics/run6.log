@@ -1,0 +1,170 @@
+  gemma-4-31b · reggae · 13.2s
+  gemma-4-31b · hip-hop · 16.7s
+loading qwen3.6-35b ...
+  qwen3.6-35b · reggae · 6.5s
+  qwen3.6-35b · hip-hop · 2.0s
+
+======================================================================
+SONG 1 — REGGAE: a song about the landlord knocking while i'm counting change on the table
+======================================================================
+
+----- A (13.2s) -----
+[verse]
+You knock on the door like you own the place.
+You shout my name with a frown on your face.
+I'm sitting here by the kitchen light.
+I'm trying to make these pennies right.
+
+[chorus]
+Wait a little bit.
+Just a little bit more.
+Leave me alone by the door.
+
+[verse]
+You say the rent is two weeks late.
+You say you're tired of the way I wait.
+But look at the table, see the silver shine.
+I'm counting every cent, one at a time.
+
+[chorus]
+Wait a little bit.
+Just a little bit more.
+Leave me alone by the door.
+
+[verse]
+Now you're talking 'bout the court in town.
+You want to tear my little shelter down.
+But I got a check coming from the harbor pier.
+It'll be in my hand by the end of the year.
+
+[chorus]
+Wait a little bit.
+Just a little bit more.
+Leave me alone by the door.
+
+[verse]
+Stop your shouting, go back to your car.
+You know where the bank and the liquor store are.
+I got forty dollars and a handful of dime.
+You'll get your money in a little more time.
+
+[chorus]
+Wait a little bit.
+Just a little bit more.
+Leave me alone by the door.
+
+----- B (6.5s) -----
+[verse]
+The knock comes hard on the door frame three times
+I freeze up right there by the table
+I got four quarters and two dimes and a crumpled five
+Trying to make the number look bigger than it is
+The deadbolt slides with a heavy metallic sound
+And there he is standing in the hallway light
+He doesn’t say hello, he just looks at my shoes
+He knows I’m broke before I even speak
+
+[chorus]
+Rent is due on the first but it’s twenty-three now
+So you can keep your key and take your time
+I ain’t got no money and I ain’t got no pride
+Just this floor and these clothes and this story
+
+[verse]
+He leans against the doorjamb and checks his watch
+Asks if I’m planning to stay for dinner
+I tell him I’m waiting on a check from the yard
+He laughs like I’m telling a joke from last week
+He says the water shut off at the building next door
+And asks if I got any tanks left for the shower
+I hand him the five dollars and the two dimes
+He takes them without looking at my eyes
+
+[chorus]
+Rent is due on the first but it’s twenty-three now
+So you can keep your key and take your time
+I ain’t got no money and I ain’t got no pride
+Just this floor and these clothes and this story
+
+[verse]
+He walks away down the concrete stairs
+His boots make a rhythmic thud on the steps
+I pick up the change and count it again
+Just to see if it grows if I stare long enough
+The refrigerator hums like a tired dog
+And the silence gets loud in the kitchen
+I put the coins back in the jar by the sink
+And wait for the rain to wash the dust off the window
+
+======================================================================
+SONG 2 — HIP-HOP: a song about my grandma's house getting sold
+======================================================================
+
+----- A (2.0s) -----
+[verse]
+The "Sold" sign nailed in the oak tree blocks your view.
+I walked up the driveway and I didn't say a word.
+The realtor’s got a smile that doesn’t reach his eyes.
+He kept checking his watch like he had a better place to be.
+
+[chorus]
+They bought the roof, they bought the walls.
+They didn’t buy the ghost who lives in the hall.
+
+[verse]
+You packed your china in the boxes labeled "Fragile."
+I found the chip in the saucer you dropped back in '98.
+The kitchen smells like lemon cleaner now, not your frying bacon.
+The new owners want to tear out the hardwood floors for carpet.
+
+[chorus]
+They bought the roof, they bought the walls.
+They didn’t buy the ghost who lives in the hall.
+
+----- B (16.7s) -----
+[verse]
+You told me the papers are already signed.
+You didn't even ask me before you called the man.
+Now there's a plastic sign sticking in the dirt
+Right where the hydrangea used to grow.
+You say the taxes are too high for us to pay,
+But you forget who scrubbed those kitchen floors.
+You forget who taught me how to peel a potato
+While the radio played some old gospel song.
+
+[chorus]
+It ain't a house no more.
+It's just a number on a page.
+It ain't a house no more.
+
+[verse]
+I went back there on Tuesday just to look.
+Some stranger in a suit was walking through the hall.
+He touched the wallpaper in the guest room
+Like he was deciding where to put a painting.
+He didn't know about the leak in the upstairs bath,
+Or the way the third step creaks when you hit it wrong.
+He looked at me and asked if I was the help,
+And I almost punched him in his polished teeth.
+
+[chorus]
+It ain't a house no more.
+It's just a number on a page.
+It ain't a house no more.
+
+[verse]
+Now you're putting her things in cardboard boxes.
+You put her favorite quilt in a black trash bag.
+You say we need to move fast before the closing date,
+But I'm still smelling cinnamon in the curtains.
+You can sell the land and you can sell the roof,
+You can sell the porch where we sat every July.
+But you can't sell the way she looked at me
+When she told me I was the only one who got it right.
+
+[chorus]
+It ain't a house no more.
+It's just a number on a page.
+It ain't a house no more.
+
+(answer key written to results/lyrics/key.json — not shown)

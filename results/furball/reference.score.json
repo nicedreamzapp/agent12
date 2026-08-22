@@ -1,0 +1,21 @@
+{
+ "label": "reference",
+ "errors": [],
+ "loaded": true,
+ "webgl2": true,
+ "fps": 120.5,
+ "coverage": 0.5583,
+ "detail": 7.632,
+ "px": 810000,
+ "idle_change": 0.1939,
+ "pet_band": 0.5028,
+ "pet_ctrl": 0.279,
+ "pet_ratio": 1.8,
+ "relax_change": 0.6623,
+ "pet_change": 0.5028,
+ "drew": true,
+ "furry": true,
+ "responds": true,
+ "springs_back": true,
+ "pass": true
+}

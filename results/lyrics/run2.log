@@ -1,0 +1,141 @@
+  gemma-4-31b · reggae · 81.8s
+  gemma-4-31b · country · 89.6s
+  gemma-4-31b · rock and roll · 73.6s
+loading qwen3.6-35b ...
+  qwen3.6-35b · reggae · 31.4s
+  qwen3.6-35b · country · 30.1s
+  qwen3.6-35b · rock and roll · 30.1s
+
+======================================================================
+SONG 1 — REGGAE: a song about waiting on a check that never comes
+======================================================================
+
+----- A (81.8s) -----
+[verse]
+Mr. Henderson, you told me Friday.
+I waited by the gate all day.
+The mailman came and went.
+He didn't leave a thing for me.
+My wife is asking where the rent is.
+You know the landlord is a mean man.
+
+[chorus]
+Where is my money?
+You owe me for the work.
+Where is my money?
+You owe me for the work.
+
+[verse]
+Now it is Monday morning.
+I walked down to the office in Half Way Tree.
+You told me the bank had a problem.
+You told me to come back tomorrow.
+But my stomach is talking to me.
+The fridge is looking very empty.
+
+[chorus]
+Where is my money?
+You owe me for the work.
+Where is my money?
+You owe me for the work.
+
+[verse]
+You are driving a brand new car.
+You are eating steak at the hotel.
+But you tell me the check is in the mail.
+You are lying to my face, Mr. Henderson.
+I am coming back on Tuesday.
+And I am not leaving without my pay.
+
+[chorus]
+Where is my money?
+You owe me for the work.
+Where is my money?
+You owe me for the work.
+
+----- B (31.4s) -----
+(model returned nothing)
+
+======================================================================
+SONG 2 — COUNTRY: a song about my truck breaking down outside barstow
+======================================================================
+
+----- A (30.1s) -----
+(model returned nothing)
+
+----- B (89.6s) -----
+[verse]
+Hey Sarah, you still awake?
+This ninety-two GMC just quit on me.
+I'm sitting right by the Barstow exit.
+Smoke is pouring out the hood.
+
+[chorus]
+I ain't coming home tonight.
+The truck is dead.
+Yeah, the truck is dead.
+
+[verse]
+A guy in a rusty Ford pulled over.
+He told me my radiator is shot.
+He gave me a lift to the diner.
+Now I'm eating a burger and waiting.
+
+[chorus]
+I ain't coming home tonight.
+The truck is dead.
+Yeah, the truck is dead.
+
+[verse]
+The tow truck driver says he's an hour out.
+He's charging me a hundred just to hook it up.
+You can tell the kids I'll be late.
+Just leave the porch light on for me.
+
+[chorus]
+I ain't coming home tonight.
+The truck is dead.
+Yeah, the truck is dead.
+
+======================================================================
+SONG 3 — ROCK AND ROLL: a song about the landlord raising the rent again
+======================================================================
+
+----- A (30.1s) -----
+(model returned nothing)
+
+----- B (73.6s) -----
+[verse]
+Mr. Henderson, I saw the note you taped to my door.
+You want another hundred bucks every single month.
+You think I'm swimming in cash just cause I play the guitar.
+You're squeezing me dry in this East Nashville hole.
+
+[chorus]
+You're taking too much.
+You're taking too much.
+Cut me some slack.
+
+[verse]
+The sink is still leaking all over the kitchen floor.
+The ceiling in the bathroom is turning a sickly yellow.
+You haven't fixed the heater since last October.
+But you sure can find the mailbox when you want a check.
+
+[chorus]
+You're taking too much.
+You're taking too much.
+Cut me some slack.
+
+[verse]
+I'm tossing my clothes in the back of my old truck.
+I found a spot over on Lower Broadway.
+It's smaller and it smells like a dive bar.
+But the man there doesn't even know my name.
+
+[chorus]
+You're taking too much.
+You're taking too much.
+Cut me some slack.
+
+(answer key written to results/lyrics/key.json — not shown)

@@ -170,6 +170,10 @@ TEMPLATE = """<!doctype html>
     · <a href="https://github.com/nicedreamzapp/agent12/blob/main/CONTAMINATION.md">contamination policy</a>.
     Cloud reference times include network/API round-trips — that is the honest
     end-to-end experience. Updated {{UPDATED}}.</p>
+    <p style="margin-top:1rem;">Want to actually run the winner? Every row here plugs straight into
+    <a href="https://github.com/nicedreamzapp/claude-code-local">Claude Code Local</a>
+    — Claude Code, 100% on-device on Apple Silicon, no cloud. Ready-made MLX builds on
+    <a href="https://huggingface.co/divinetribe">Hugging Face</a>.</p>
   </div>
 </main>
 </body>

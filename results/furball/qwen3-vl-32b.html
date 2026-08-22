@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Furry Ball with WebGL2</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background-color: #111;
+    }
+    canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+  <script>
+    // WebGL2 Furry Ball
+    const canvas = document.getElementById('canvas');
+    const gl = canvas.getContext('webgl2');
+    if (!gl) {
+      alert('WebGL2 not supported');
+      throw new Error('WebGL2 not supported');
+    }
+
+    // Set canvas to fill window
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    gl.viewport(0, 0, canvas.width, canvas.height);
+
+    // Shader source
+    const vertexShaderSource = `
+      #version 300 es
+      precision highp float;
+
+      in vec3 a_position;
+      in vec3 a_normal;
+      in vec3 a_tangent;
+      in vec3 a_color;
+      in float a_length;
+      in float a_bend;
+      in float a_bendDirX;
+      in float a_bendDirY;
+
+      uniform vec3 u_cameraPos;
+      uniform vec3 u_lightDir;
+      uniform float u_time;
+      uniform float u_dragStrength;
+      uniform vec2 u_dragPos;
+      uniform float u_dragRadius;
+      uniform float u_dragTime;
+
+      out vec3 v_position;
+      out vec3 v_normal;
+      out vec3 v_color;
+      out float v_length;
+      out float v_bend;
+      out vec2 v_uv;
+
+      // Bend function for hair
+      vec3 bendHair(vec3 pos, vec3 dir, float length, float bend, vec2 bendDir) {
+        float dist = length(pos - u_dragPos);
+        float influence = smoothstep(0.0, u_dragRadius, dist);
+        float t = length / 1.0; // normalized length
+        float bendAmount = influence * bend * (1.0 - t * 0.5); // more bend near root
+        vec3 bendVec = normalize(vec3(bendDir.x, bendDir.y, 0.0)) * bendAmount;
+        return pos + bendVec;
+      }
+
+      void main() {
+        // Calculate position along hair
+        vec3 root = a_position;
+        vec3 tip = root + a_normal * a_length;
+        vec3 dir = normalize(tip - root);
+        vec3 pos = root + dir * a_length * 0.5; // mid-point for shading
+
+        // Apply drag bend
+        float dist = length(pos - u_dragPos);
+        float influence = smoothstep(0.0, u_dragRadius, dist);
+        float t = a_length / 1.0;
+        float bendAmount = influence * a_bend * (1.0 - t * 0.5);
+        vec3 bendVec = normalize(vec3(a_bendDirX, a_bendDirY, 0.0)) * bendAmount;
+        pos = pos + bendVec;
+
+        // Calculate normal for shading
+        vec3 tangent = normalize(a_tangent);
+        vec3 bitangent = cross(tangent, dir);
+        vec3 normal = cross(tangent, bitangent);
+        normal = normalize(normal);
+
+        // Output
+        v_position = pos;
+        v_normal = normal;
+        v_color = a_color;
+        v_length = a_length;
+        v_bend = a_bend;
+        v_uv = vec2(0.0, 0.0); // unused
+
+        // Simple projection
+        gl_Position = vec4(pos, 1.0);
+      }
+    `;
+
+    const fragmentShaderSource = `
+      #version 300 es
+      precision highp float;
+
+      in vec3 v_position;
+      in vec3 v_normal;
+      in vec3 v_color;
+      in float v_length;
+      in float v_bend;
+
+      uniform vec3 u_lightDir;
+      uniform vec3 u_ambient;
+      uniform vec3 u_diffuse;
+      uniform vec3 u_specular;
+      uniform float u_shininess;
+
+      out vec4 fragColor;
+
+      void main() {
+        // Normalize normal
+        vec3 N = normalize(v_normal);
+        vec3 L = normalize(u_lightDir);
+        vec3 V = normalize(vec3(0.0, 0.0, 1.0)); // view direction
+        vec3 H = normalize(L + V);
+
+        // Diffuse lighting
+        float diff = max(dot(N, L), 0.0);
+        vec3 diffuse = u_diffuse * diff;
+
+        // Specular lighting
+        float spec = pow(max(dot(N, H), 0.0), u_shininess);
+        vec3 specular = u_specular * spec;
+
+        // Color based on length (fuzzier tips)
+        vec3 baseColor = v_color;
+        float lengthFactor = 1.0 - (v_length / 1.0) * 0.3; // darker roots
+        vec3 finalColor = (u_ambient + diffuse + specular) * baseColor * lengthFactor;
+
+        // Add some noise for variation
+        float noise = fract(sin(dot(v_position, vec3(12.9898, 78.233, 37.719))) * 43758.5453123);
+        finalColor = mix(finalColor, vec3(0.8, 0.6, 0.4), noise * 0.1);
+
+        fragColor = vec4(finalColor, 1.0);
+      }
+    `;
+
+    // Compile shaders
+    function compileShader(source, type) {
+      const shader = gl.createShader(type);
+      gl.shaderSource(shader, source);
+      gl.compileShader(shader);
+      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+        console.error('Shader compile error:', gl.getShaderInfoLog(shader));
+        gl.deleteShader(shader);
+        return null;
+      }
+      return shader;
+    }
+
+    // Create program
+    const vertexShader = compileShader(vertexShaderSource, gl.VERTEX_SHADER);
+    const fragmentShader = compileShader(fragmentShaderSource, gl.FRAGMENT_SHADER);
+    const program = gl.createProgram();
+    gl.attachShader(program, vertexShader);
+    gl.attachShader(program, fragmentShader);
+    gl.linkProgram(program);
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+      console.error('Program link error:', gl.getProgramInfoLog(program));
+      throw new Error('Program link failed');
+    }
+
+    // Use program
+    gl.useProgram(program);
+
+    // Set up uniforms
+    const u_cameraPosLoc = gl.getUniformLocation(program, 'u_cameraPos');
+    const u_lightDirLoc = gl.getUniformLocation(program, 'u_lightDir');
+    const u_timeLoc = gl.getUniformLocation(program, 'u_time');
+    const u_dragStrengthLoc = gl.getUniformLocation(program, 'u_dragStrength');
+    const u_dragPosLoc = gl.getUniformLocation(program, 'u_dragPos');
+    const u_dragRadiusLoc = gl.getUniformLocation(program, 'u_dragRadius');
+    const u_dragTimeLoc = gl.getUniformLocation(program, 'u_dragTime');
+    const u_ambientLoc = gl.getUniformLocation(program, 'u_ambient');
+    const u_diffuseLoc = gl.getUniformLocation(program, 'u_diffuse');
+    const u_specularLoc = gl.getUniformLocation(program, 'u_specular');
+    const u_shininessLoc = gl.getUniformLocation(program, 'u_shininess');
+
+    // Set lighting
+    gl.uniform3f(u_ambientLoc, 0.1, 0.1, 0.1);
+    gl.uniform3f(u_diffuseLoc, 0.8, 0.6, 0.4);
+    gl.uniform3f(u_specularLoc, 1.0, 1.0, 1.0);
+    gl.uniform1f(u_shininessLoc, 32.0);
+    gl.uniform3f(u_lightDirLoc, 0.5, 0.5, 1.0);
+
+    // Set camera
+    gl.uniform3f(u_cameraPosLoc, 0.0, 0.0, 3.0);
+
+    // Create hair data
+    const numStrands = 1000000;
+    const sphereRadius = 4.0; // inches
+    const hairLength = 1.0; // inches
+
+    // Generate Fibonacci lattice for even distribution
+    const positions = new Float32Array(numStrands * 3);
+    const normals = new Float32Array(numStrands * 3);
+    const tangents = new Float32Array(numStrands * 3);
+    const colors = new Float32Array(numStrands * 3);
+    const lengths = new Float32Array(numStrands);
+    const bends = new Float32Array(numStrands);
+    const bendDirsX = new Float32Array(numStrands);
+    const bendDirsY = new Float32Array(numStrands);
+
+    for (let i = 0; i < numStrands; i++) {
+      const phi = Math.acos(-1 + 2 * (i + 0.5) / numStrands);
+      const theta = Math.sqrt(numStrands) * Math.PI * (1 + Math.sqrt(5)) * (i + 0.5) / numStrands;
+      const x = Math.sin(phi) * Math.cos(theta);
+      const y = Math.sin(phi) * Math.sin(theta);
+      const z = Math.cos(phi);
+
+      // Position
+      positions[i * 3 + 0] = x * sphereRadius;
+      positions[i * 3 + 1] = y * sphereRadius;
+      positions[i * 3 + 2] = z * sphereRadius;
+
+      // Normal
+      normals[i * 3 + 0] = x;
+      normals[i * 3 + 1] = y;
+      normals[i * 3 + 2] = z;
+
+      // Tangent (approximate)
+      const tangent = new Float32Array(3);
+      if (Math.abs(x) > 0.1) {
+        tangent[0] = 0.0;
+        tangent[1] = -z;
+        tangent[2] = y;
+      } else {
+        tangent[0] = -z;
+        tangent[1] = 0.0;
+        tangent[2] = x;
+      }
+      const len = Math.sqrt(tangent[0] * tangent[0] + tangent[1] * tangent[1] + tangent[2] * tangent[2]);
+      if (len > 0.001) {
+        tangent[0] /= len;
+        tangent[1] /= len;
+        tangent[2] /= len;
+      }
+      tangents[i * 3 + 0] = tangent[0];
+      tangents[i * 3 + 1] = tangent[1];
+      tangents[i * 3 + 2] = tangent[2];
+
+      // Color
+      const r = 0.8 + Math.random() * 0.2;
+      const g = 0.6 + Math.random() * 0.2;
+      const b = 0.4 + Math.random() * 0.2;
+      colors[i * 3 + 0] = r;
+      colors[i * 3 + 1] = g;
+      colors[i * 3 + 2] = b;
+
+      // Length
+      lengths[i] = hairLength * (0.8 + Math.random() * 0.4); // vary length
+
+      // Bend
+      bends[i] = 0.0;
+      bendDirsX[i] = 0.0;
+      bendDirsY[i] = 0.0;
+    }
+
+    // Create buffers
+    const positionBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
+
+    const normalBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, normals, gl.STATIC_DRAW);
+
+    const tangentBuffer = gl.create1Buffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, tangentBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, tangents, gl.STATIC_DRAW);
+
+    const colorBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, colors, gl.STATIC_DRAW);
+
+    const lengthBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, lengthBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, lengths, gl.STATIC_DRAW);
+
+    const bendBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, bendBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, bends, gl.STATIC_DRAW);
+
+    const bendDirXBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, bendDirXBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, bendDirsX, gl.STATIC_DRAW);
+
+    const bendDirYBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, bendDirYBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, bendDirsY, gl.STATIC_DRAW);
+
+    // Set up vertex attributes
+    const a_positionLoc = gl.getAttribLocation(program, 'a_position');
+    gl.enableVertexAttribArray(a_positionLoc);
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+    gl.vertexAttribPointer(a_positionLoc, 3, gl.FLOAT, false, 0, 0);
+
+    const a_normalLoc = gl.getAttribLocation(program, 'a_normal');
+    gl.enableVertexAttribArray(a_normalLoc);
+    gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
+    gl.vertexAttribPointer(a_normalLoc, 3, gl.FLOAT, false, 0, 0);
+
+    const a_tangentLoc = gl.getAttribLocation(program, 'a_tangent');
+    gl.enableVertexAttribArray(a_tangentLoc);
+    gl.bindBuffer(gl.ARRAY_BUFFER, tangentBuffer);
+    gl.vertexAttribPointer(a_tangentLoc, 3, gl.FLOAT, false, 0, 0);
+
+    const a_colorLoc = gl.getAttribLocation(program, 'a_color');
+    gl.enableVertexAttribArray(a_colorLoc);
+    gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+    gl.vertexAttribPointer(a_colorLoc, 3, gl.FLOAT, false, 0, 0);
+
+    const a_lengthLoc = gl.getAttribLocation(program, 'a_length');
+    gl.enableVertexAttribArray(a_lengthLoc);
+    gl.bindBuffer(gl.ARRAY_BUFFER, lengthBuffer);
+    gl.vertexAttribPointer(a_lengthLoc, 1, gl.FLOAT, false, 0, 0);
+
+    const a_bendLoc = gl.getAttribLocation(program, 'a_bend');
+    gl.enableVertexAttribArray(a_bendLoc);
+    gl.bindBuffer(gl.ARRAY_BUFFER, bendBuffer);
+    gl.vertexAttribPointer(a_bendLoc, 1, gl.FLOAT, false, 0, 0);
+
+    const a_bendDirXLoc = gl.getAttribLocation(program, 'a_bendDirX');
+    gl.enableVertexAttribArray(a_bendDirXLoc);
+    gl.bindBuffer(gl.ARRAY_BUFFER, bendDirXBuffer);
+    gl.vertexAttribPointer(a_bendDirXLoc, 1, gl.FLOAT, false, 0, 0);
+
+    const a_bendDirYLoc = gl.getAttribLocation(program, 'a_bendDirY');
+    gl.enableVertexAttribArray(a_bendDirYLoc);
+    gl.bindBuffer(gl.ARRAY_BUFFER, bendDirYBuffer);
+    gl.vertexAttribPointer(a_bendDirYLoc, 1, gl.FLOAT, false, 0, 0);
+
+    // Drag state
+    let isDragging = false;
+    let dragStart = { x: 0, y: 0 };
+    let dragEnd = { x: 0, y: 0 };
+    let dragTime = 0;
+    let dragStrength = 0.0;
+    let dragRadius = 0.5;
+    let lastDragTime = 0;
+
+    // Mouse event handlers
+    canvas.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      dragStart.x = e.clientX;
+      dragStart.y = e.clientY;
+      dragEnd.x = e.clientX;
+      dragEnd.y = e.clientY;
+      dragTime = 0;
+      lastDragTime = performance.now();
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+      if (isDragging) {
+        dragEnd.x = e.clientX;
+        dragEnd.y = e.clientY;
+        dragTime = performance.now() - lastDragTime;
+        lastDragTime = performance.now();
+      }
+    });
+
+    canvas.addEventListener('mouseup', () => {
+      isDragging = false;
+    });
+
+    canvas.addEventListener('mouseleave', () => {
+      isDragging = false;
+    });
+
+    // Animation loop
+    function animate() {
+      const now = performance.now();
+      gl.clearColor(0.0, 0.0, 0.0, 1.0);
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+      // Update drag
+      if (isDragging) {
+        const dx = dragEnd.x - dragStart.x;
+        const dy = dragEnd.y - dragStart.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist > 0) {
+          const strength = 0.01 * dist / canvas.width;
+          const dirX = dx / dist;
+          const dirY = dy / dist;
+
+          // Update hair bend (simple simulation)
+          for (let i = 0; i < numStrands; i++) {
+            const x = positions[i * 3 + 0];
+            const y = positions[i * 3 + 1];
+            const z = positions[i * 3 + 2];
+            const screenX = (x + 4.0) / 8.0 * canvas.width;
+            const screenY = (y + 4.0) / 8.0 * canvas.height;
+            const distToCursor = Math.sqrt(
+              Math.pow(screenX - (dragEnd.x + dragStart.x) / 2, 2) +
+              Math.pow(screenY - (dragEnd.y + dragStart.y) / 2, 2)
+            );
+            if (distToCursor < 100) {
+              bends[i] = strength * 0.5;
+              bendDirsX[i] = dirX;
+              bendDirsY[i] = dirY;
+            }
+          }
+        }
+      } else {
+        // Relax hair
+        for (let i = 0; i < numStrands; i++) {
+          bends[i] *= 0.98; // decay
+        }
+      }
+
+      // Update uniforms
+      gl.uniform1f(u_timeLoc, now * 0.001);
+      gl.uniform1f(u_dragStrengthLoc, dragStrength);
+      gl.uniform2f(u_dragPosLoc, (dragEnd.x + dragStart.x) / 2 / canvas.width * 8.0 - 4.0, (dragEnd.y + dragStart.y) / 2 / canvas.height * 8.0 - 4.0);
+      gl.uniform1f(u_dragRadiusLoc, dragRadius);
+      gl.uniform1f(u_dragTimeLoc, dragTime);
+
+      // Draw
+      gl.drawArrays(gl.POINTS, 0, numStrands);
+
+      // Update buffers
+      gl.bindBuffer(gl.ARRAY_BUFFER, bendBuffer);
+      gl.bufferSubData(gl.ARRAY_BUFFER, 0, bends);
+      gl.bindBuffer(gl.ARRAY_BUFFER, bendDirXBuffer);
+      gl.bufferSubData(gl.ARRAY_BUFFER, 0, bendDirsX);
+      gl.bindBuffer(gl.ARRAY_BUFFER, bendDirYBuffer);
+      gl.bufferSubData(gl.ARRAY_BUFFER, 0, bendDirsY);
+
+      requestAnimationFrame(animate);
+    }
+
+    // Start animation
+    animate();
+
+    // Resize handler
+    window.addEventListener('resize', () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      gl.viewport(0, 0, canvas.width, canvas.height);
+    });
+  </script>
+</body>
+</html>

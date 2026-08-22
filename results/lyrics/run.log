@@ -1,0 +1,72 @@
+  gemma-4-31b · reggae · 57.8s
+  gemma-4-31b · country · 59.2s
+  gemma-4-31b · rock and roll · 60.7s
+loading qwen3.6-35b ...
+  qwen3.6-35b · reggae · 17.3s
+  qwen3.6-35b · country · 14.1s
+  qwen3.6-35b · rock and roll · 14.1s
+
+======================================================================
+SONG 1 — REGGAE: a song about waiting on a check that never comes
+======================================================================
+
+----- A (17.3s) -----
+(model returned nothing)
+
+----- B (57.8s) -----
+[verse]
+Mr. Henderson, you told me Friday.
+I waited by the gate all day.
+The mailman came and went.
+He didn't leave a thing for me.
+My wife is asking where the rent is.
+You know the landlord is a mean man.
+
+[chorus]
+Where is my money?
+You owe me for the work.
+Where is my money?
+You owe me for the work.
+
+[verse]
+Now it is Monday morning.
+I walked down to the office in Half Way Tree.
+You told me the bank had a problem.
+You told me to come back tomorrow.
+But my stomach is talking to me.
+The fridge is looking very empty.
+
+[chorus]
+Where is my money?
+You owe me for the work.
+Where is my money?
+You owe me for the work.
+
+[verse]
+The electric man came by today.
+He cut the wire in the yard.
+Now I am sitting in the dark.
+You are probably sleeping in your big bed.
+You better pay me
+
+======================================================================
+SONG 2 — COUNTRY: a song about my truck breaking down outside barstow
+======================================================================
+
+----- A (59.2s) -----
+(model returned nothing)
+
+----- B (14.1s) -----
+(model returned nothing)
+
+======================================================================
+SONG 3 — ROCK AND ROLL: a song about the landlord raising the rent again
+======================================================================
+
+----- A (14.1s) -----
+(model returned nothing)
+
+----- B (60.7s) -----
+(model returned nothing)
+
+(answer key written to results/lyrics/key.json — not shown)

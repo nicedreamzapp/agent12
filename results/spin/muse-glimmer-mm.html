@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Spinning 3D Ball</title>
+<style>
+html,body{margin:0;height:100%;overflow:hidden;background:#0b0f14;}
+canvas{display:block;width:100%;height:100%;}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+const canvas = document.getElementById('c');
+const gl = canvas.getContext('webgl2');
+if(!gl){alert('WebGL2 required');}
+
+function resize(){
+  canvas.width = canvas.clientWidth * devicePixelRatio;
+  canvas.height = canvas.clientHeight * devicePixelRatio;
+  gl.viewport(0,0,canvas.width,canvas.height);
+}
+window.addEventListener('resize',resize);
+resize();
+
+const vs = `#version 300 es
+in vec3 aPos;
+in vec3 aNorm;
+uniform mat4 uMVP;
+uniform mat4 uModel;
+out vec3 vNorm;
+out vec3 vPos;
+void main(){
+  vec4 worldPos = uModel * vec4(aPos,1.0);
+  vPos = worldPos.xyz;
+  vNorm = mat3(uModel) * aNorm;
+  gl_Position = uMVP * vec4(aPos,1.0);
+}`;
+
+const fs = `#version 300 es
+precision mediump float;
+in vec3 vNorm;
+in vec3 vPos;
+uniform vec3 uLightDir;
+uniform vec3 uLightColor;
+uniform vec3 uAmbient;
+out vec4 outColor;
+void main(){
+  vec3 N = normalize(vNorm);
+  vec3 L = normalize(uLightDir);
+  float diff = max(dot(N,L),0.0);
+  vec3 col = uAmbient + uLightColor * diff;
+  outColor = vec4(col,1.0);
+}`;
+
+function compile(type,src){
+  const s = gl.createShader(type);
+  gl.shaderSource(s,src);
+  gl.compileShader(s);
+  if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)) throw gl.getShaderInfoLog(s);
+  return s;
+}
+const prog = gl.createProgram();
+gl.attachShader(prog, compile(gl.VERTEX_SHADER, vs));
+gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, fs));
+gl.linkProgram(prog);
+if(!gl.getProgramParameter(prog,gl.LINK_STATUS)) throw gl.getProgramInfoLog(prog);
+gl.useProgram(prog);
+
+function sphere(latBands, lonBands){
+  const verts=[], norms=[], idx=[];
+  for(let lat=0; lat<=latBands; lat++){
+    const theta = lat*Math.PI/latBands;
+    const sinT = Math.sin(theta), cosT = Math.cos(theta);
+    for(let lon=0; lon<=lonBands; lon++){
+      const phi = lon*2*Math.PI/lonBands;
+      const sinP = Math.sin(phi), cosP = Math.cos(phi);
+      const x = cosP*sinT, y = cosT, z = sinP*sinT;
+      verts.push(x,y,z);
+      norms.push(x,y,z);
+    }
+  }
+  for(let lat=0; lat<latBands; lat++){
+    for(let lon=0; lon<lonBands; lon++){
+      const first = (lat*(lonBands+1))+lon;
+      const second = first + lonBands +1;
+      idx.push(first, second, first+1);
+      idx.push(second, second+1, first+1);
+    }
+  }
+  return {verts, norms, idx};
+}
+const bands = 32;
+const {verts, norms, idx} = sphere(bands, bands);
+const triCount = idx.length;
+const posBuf = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, posBuf);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(verts), gl.STATIC_DRAW);
+const normBuf = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, normBuf);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(norms), gl.STATIC_DRAW);
+const idxBuf = gl.createBuffer();
+gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, idxBuf);
+gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(idx), gl.STATIC_DRAW);
+
+const aPos = gl.getAttribLocation(prog,'aPos');
+const aNorm = gl.getAttribLocation(prog,'aNorm');
+gl.bindBuffer(gl.ARRAY_BUFFER, posBuf);
+gl.enableVertexAttribArray(aPos);
+gl.vertexAttribPointer(aPos,3,gl.FLOAT,false,0,0);
+gl.bindBuffer(gl.ARRAY_BUFFER, normBuf);
+gl.enableVertexAttribArray(aNorm);
+gl.vertexAttribPointer(aNorm,3,gl.FLOAT,false,0,0);
+
+const uMVP = gl.getUniformLocation(prog,'uMVP');
+const uModel = gl.getUniformLocation(prog,'uModel');
+const uLightDir = gl.getUniformLocation(prog,'uLightDir');
+const uLightColor = gl.getUniformLocation(prog,'uLightColor');
+const uAmbient = gl.getUniformLocation(prog,'uAmbient');
+
+gl.uniform3fv(uLightDir, [0.6,0.8,1.0]);
+gl.uniform3fv(uLightColor, [1.0,1.0,0.9]);
+gl.uniform3fv(uAmbient, [0.15,0.15,0.2]);
+
+function mat4Identity(){return new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]);}
+function mat4Multiply(a,b){const o=new Float32Array(16); for(let i=0;i<4;i++)for(let j=0;j<4;j++){o[i*4+j]=a[i*4+0]*b[0*4+j]+a[i*4+1]*b[1*4+j]+a[i*4+2]*b[2*4+j]+a[i*4+3]*b[3*4+j];} return o;}
+function mat4Perspective(fov,aspect,near,far){const f=1/Math.tan(fov/2); const nf=1/(near-far); const o=new Float32Array(16); o[0]=f/aspect; o[5]=f; o[10]=(far+near)*nf; o[11]=-1; o[14]=2*far*near*nf; return o;}
+function mat4Translate(m,tx,ty,tz){const t=mat4Identity(); t[12]=tx; t[13]=ty; t[14]=tz; return mat4Multiply(m,t);}
+function mat4RotateY(m,a){const c=Math.cos(a), s=Math.sin(a); const r=mat4Identity(); r[0]=c; r[2]=-s; r[8]=s; r[10]=c; return mat4Multiply(m,r);}
+function mat4RotateX(m,a){const c=Math.cos(a), s=Math.sin(a); const r=mat4Identity(); r[5]=c; r[6]=s; r[9]=-s; r[10]=c; return mat4Multiply(m,r);}
+
+let angleY=0, angleX=0.3;
+let speedY=0.3, speedX=0.15;
+let dragging=false, lastX=0, lastY=0;
+canvas.addEventListener('pointerdown',e=>{dragging=true; lastX=e.clientX; lastY=e.clientY;});
+window.addEventListener('pointerup',()=>dragging=false);
+window.addEventListener('pointermove',e=>{
+  if(!dragging) return;
+  const dx=e.clientX-lastX, dy=e.clientY-lastY;
+  lastX=e.clientX; lastY=e.clientY;
+  angleY += dx*0.005;
+  angleX += dy*0.005;
+  speedY = 0.3 + Math.abs(dx)*0.02;
+  speedX = 0.15 + Math.abs(dy)*0.02;
+});
+
+let start=performance.now();
+function render(now){
+  const t=(now-start)/1000;
+  angleY += speedY*0.016;
+  angleX += speedX*0.016;
+  const aspect = canvas.width/canvas.height;
+  const proj = mat4Perspective(Math.PI/4, aspect, 0.1, 100);
+  let model = mat4Identity();
+  model = mat4RotateY(model, angleY);
+  model = mat4RotateX(model, angleX);
+  model = mat4Translate(model,0,0,-3);
+  const mvp = mat4Multiply(proj, model);
+  gl.uniformMatrix4fv(uMVP,false,mvp);
+  gl.uniformMatrix4fv(uModel,false,model);
+  gl.clearColor(0.04,0.06,0.08,1);
+  gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+  gl.enable(gl.DEPTH_TEST);
+  gl.drawElements(gl.TRIANGLES, triCount, gl.UNSIGNED_SHORT,0);
+  requestAnimationFrame(render);
+}
+requestAnimationFrame(render);
+</script>
+</body>
+</html>

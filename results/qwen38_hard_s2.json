@@ -1,0 +1,63 @@
+{
+  "run": "qwen38_hard_s2",
+  "suite": "hard",
+  "adapter": "anvil",
+  "harness_version": "1.0.0",
+  "started_utc": "2026-08-18T20:33:41Z",
+  "load_s": 2.8,
+  "tasks": {
+    "h1_interval_merge": {
+      "pass": true,
+      "seconds": 86.6,
+      "detail": "",
+      "error": ""
+    },
+    "h2_fix_iteration_bug": {
+      "pass": true,
+      "seconds": 41.0,
+      "detail": "",
+      "error": ""
+    },
+    "h3_lru_ttl_cache": {
+      "pass": false,
+      "seconds": 96.6,
+      "detail": "",
+      "error": ""
+    },
+    "h4_csv_no_csv": {
+      "pass": false,
+      "seconds": 113.7,
+      "detail": "",
+      "error": ""
+    },
+    "h5_topo_lex": {
+      "pass": true,
+      "seconds": 61.6,
+      "detail": "",
+      "error": ""
+    },
+    "h6_log_normalize": {
+      "pass": true,
+      "seconds": 105.3,
+      "detail": "",
+      "error": ""
+    },
+    "h7_spec_gauntlet": {
+      "pass": false,
+      "seconds": 97.1,
+      "detail": "0/10",
+      "error": ""
+    },
+    "h8_cache_collision": {
+      "pass": true,
+      "seconds": 181.0,
+      "detail": "",
+      "error": ""
+    }
+  },
+  "model": "EigenLabs/Qwen3.8-27B-4bit",
+  "dialect": "native",
+  "backend": "mlx",
+  "prompt_file": "",
+  "score": "5/8"
+}

@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Spinning 3D Ball</title>
+<style>
+* { margin: 0; padding: 0; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
+canvas { display: block; width: 100%; height: 100%; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+"use strict";
+const canvas = document.getElementById("c");
+const gl = canvas.getContext("webgl2");
+if (!gl) { alert("WebGL2 not supported"); }
+
+function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    gl.viewport(0, 0, canvas.width, canvas.height);
+}
+window.addEventListener("resize", resize);
+resize();
+
+const vsSource = `#version 300 es
+in vec3 aPos;
+in vec3 aNorm;
+uniform mat4 uModel;
+uniform mat4 uView;
+uniform mat4 uProj;
+out vec3 vNorm;
+out vec3 vWorldPos;
+void main() {
+    vec4 worldPos = uModel * vec4(aPos, 1.0);
+    vWorldPos = worldPos.xyz;
+    vNorm = mat3(uModel) * aNorm;
+    gl_Position = uProj * uView * worldPos;
+}`;
+
+const fsSource = `#version 300 es
+precision mediump float;
+in vec3 vNorm;
+in vec3 vWorldPos;
+out vec4 fragColor;
+uniform vec3 uLightDir;
+uniform vec3 uCamPos;
+void main() {
+    vec3 N = normalize(vNorm);
+    vec3 L = normalize(uLightDir);
+    float diff = max(dot(N, L), 0.0);
+    vec3 V = normalize(uCamPos - vWorldPos);
+    vec3 H = normalize(L + V);
+    float spec = pow(max(dot(N, H), 0.0), 64.0);
+    vec3 ambient = vec3(0.08, 0.08, 0.12);
+    vec3 color = vec3(0.25, 0.45, 0.85);
+    vec3 finalColor = color * (ambient + diff * vec3(1.0, 0.95, 0.9)) + spec * vec3(0.6, 0.6, 0.7) * 0.5;
+    fragColor = vec4(finalColor, 1.0);
+}`;
+
+function compileShader(src, type) {
+    const s = gl.createShader(type);
+    gl.shaderSource(s, src);
+    gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+        console.error(gl.getShaderInfoLog(s));
+        gl.deleteShader(s);
+        return null;
+    }
+    return s;
+}
+
+const vs = compileShader(vsSource, gl.VERTEX_SHADER);
+const fs = compileShader(fsSource, gl.FRAGMENT_SHADER);
+const prog = gl.createProgram();
+gl.attachShader(prog, vs);
+gl.attachShader(prog, fs);
+gl.linkProgram(prog);
+if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+    console.error(gl.getProgramInfoLog(prog));
+}
+gl.useProgram(prog);
+
+const aPos = gl.getAttribLocation(prog, "aPos");
+const aNorm = gl.getAttribLocation(prog, "aNorm");
+const uModel = gl.getUniformLocation(prog, "uModel");
+const uView = gl.getUniformLocation(prog, "uView");
+const uProj = gl.getUniformLocation(prog, "uProj");
+const uLightDir = gl.getUniformLocation(prog, "uLightDir");
+const uCamPos = gl.getUniformLocation(prog, "uCamPos");
+
+// Generate sphere: ~2048 triangles (32x32 segments)
+const segU = 32;
+const segV = 32;
+const positions = [];
+const normals = [];
+const indices = [];
+
+for (let v = 0; v <= segV; v++) {
+    const phi = Math.PI * v / segV;
+    for (let u = 0; u <= segU; u++) {
+        const theta = 2.0 * Math.PI * u / segU;
+        const x = Math.sin(phi) * Math.cos(theta);
+        const y = Math.cos(phi);
+        const z = Math.sin(phi) * Math.sin(theta);
+        positions.push(x, y, z);
+        normals.push(x, y, z);
+    }
+}
+
+for (let v = 0; v < segV; v++) {
+    for (let u = 0; u < segU; u++) {
+        const a = v * (segU + 1) + u;
+        const b = a + segU + 1;
+        indices.push(a, b, a + 1);
+        indices.push(b, b + 1, a + 1);
+    }
+}
+
+const posBuf = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, posBuf);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
+
+const normBuf = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, normBuf);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(normals), gl.STATIC_DRAW);
+
+const idxBuf = gl.createBuffer();
+gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, idxBuf);
+gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint32Array(indices), gl.STATIC_DRAW);
+
+const vao = gl.createVertexArray();
+gl.bindVertexArray(vao);
+gl.bindBuffer(gl.ARRAY_BUFFER, posBuf);
+gl.enableVertexAttribArray(aPos);
+gl.vertexAttribPointer(aPos, 3, gl.FLOAT, false, 0, 0);
+gl.bindBuffer(gl.ARRAY_BUFFER, normBuf);
+gl.enableVertexAttribArray(aNorm);
+gl.vertexAttribPointer(aNorm, 3, gl.FLOAT, false, 0, 0);
+gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, idxBuf);
+gl.bindVertexArray(null);
+
+const triCount = indices.length / 3;
+
+// Matrix math
+function mat4Perspective(fovY, aspect, near, far) {
+    const f = 1.0 / Math.tan(fovY / 2);
+    const nf = 1 / (near - far);
+    return new Float32Array([
+        f / aspect, 0, 0, 0,
+        0, f, 0, 0,
+        0, 0, (far + near) * nf, -1,
+        0, 0, 2 * far * near * nf, 0
+    ]);
+}
+
+function mat4LookAt(eye, center, up) {
+    const zx = eye[0] - center[0], zy = eye[1] - center[1], zz = eye[2] - center[2];
+    let len = 1 / Math.sqrt(zx * zx + zy * zy + zz * zz);
+    const z = [zx * len, zy * len, zz * len];
+    const xx = up[1] * z[2] - up[2] * z[1], xy = up[2] * z[0] - up[0] * z[2], xz = up[0] * z[1] - up[1] * z[0];
+    len = 1 / Math.sqrt(xx * xx + xy * xy + xz * xz);
+    const x = [xx * len, xy * len, xz * len];
+    const y = [z[1] * x[2] - z[2] * x[1], z[2] * x[0] - z[0] * x[2], z[0] * x[1] - z[1] * x[0]];
+    return new Float32Array([
+        x[0], y[0], z[0], 0,
+        x[1], y[1], z[1], 0,
+        x[2], y[2], z[2], 0,
+        -(x[0] * eye[0] + x[1] * eye[1] + x[2] * eye[2]),
+        -(y[0] * eye[0] + y[1] * eye[1] + y[2] * eye[2]),
+        -(z[0] * eye[0] + z[1] * eye[1] + z[2] * eye[2]),
+        1
+    ]);
+}
+
+function mat4Mul(a, b) {
+    const r = new Float32Array(16);
+    for (let i = 0; i < 4; i++)
+        for (let j = 0; j < 4; j++) {
+            r[j * 4 + i] = 0;
+            for (let k = 0; k < 4; k++)
+                r[j * 4 + i] += a[k * 4 + i] * b[j * 4 + k];
+        }
+    return r;
+}
+
+function mat4RotX(a) {
+    const c = Math.cos(a), s = Math.sin(a);
+    return new Float32Array([1,0,0,0, 0,c,s,0, 0,-s,c,0, 0,0,0,1]);
+}
+
+function mat4RotY(a) {
+    const c = Math.cos(a), s = Math.sin(a);
+    return new Float32Array([c,0,-s,0, 0,1,0,0, s,0,c,0, 0,0,0,1]);
+}
+
+// State
+let rotX = 0, rotY = 0;
+let angVelX = 0.003, angVelY = 0.005;
+let dragging = false;
+let lastMX = 0, lastMY = 0;
+
+canvas.addEventListener("mousedown", (e) => {
+    dragging = true;
+    lastMX = e.clientX;
+    lastMY = e.clientY;
+});
+
+window.addEventListener("mouseup", () => { dragging = false; });
+
+window.addEventListener("mousemove", (e) => {
+    if (!dragging) return;
+    const dx = e.clientX - lastMX;
+    const dy = e.clientY - lastMY;
+    angVelY = dx * 0.0003;
+    angVelX = dy * 0.0003;
+    rotY += dx * 0.005;
+    rotX += dy * 0.005;
+    lastMX = e.clientX;
+    lastMY = e.clientY;
+});
+
+// Touch support
+canvas.addEventListener("touchstart", (e) => {
+    e.preventDefault();
+    dragging = true;
+    lastMX = e.touches[0].clientX;
+    lastMY = e.touches[0].clientY;
+}, { passive: false });
+
+window.addEventListener("touchend", () => { dragging = false; });
+
+window.addEventListener("touchmove", (e) => {
+    if (!dragging) return;
+    const dx = e.touches[0].clientX - lastMX;
+    const dy = e.touches[0].clientY - lastMY;
+    angVelY = dx * 0.0003;
+    angVelX = dy * 0.0003;
+    rotY += dx * 0.005;
+    rotX += dy * 0.005;
+    lastMX = e.touches[0].clientX;
+    lastMY = e.touches[0].clientY;
+}, { passive: false });
+
+const lightDir = [0.5, 1.0, 0.8];
+const camPos = [0, 0, 3.5];
+
+function frame() {
+    if (!dragging) {
+        rotX += angVelX;
+        rotY += angVelY;
+    }
+
+    const aspect = canvas.width / canvas.height;
+    const proj = mat4Perspective(Math.PI / 4, aspect, 0.1, 100);
+    const view = mat4LookAt(camPos, [0, 0, 0], [0, 1, 0]);
+
+    const model = mat4Mul(mat4RotX(rotX), mat4RotY(rotY));
+
+    gl.clearColor(0.02, 0.02, 0.04, 1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.enable(gl.DEPTH_TEST);
+
+    gl.uniformMatrix4fv(uModel, false, model);
+    gl.uniformMatrix4fv(uView, false, view);
+    gl.uniformMatrix4fv(uProj, false, proj);
+    gl.uniform3fv(uLightDir, lightDir);
+    gl.uniform3fv(uCamPos, camPos);
+
+    gl.bindVertexArray(vao);
+    gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_INT, 0);
+
+    requestAnimationFrame(frame);
+}
+
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

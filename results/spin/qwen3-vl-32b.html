@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Spinning 3D Ball</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background-color: #111;
+    }
+    canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="glCanvas"></canvas>
+  <script>
+    // Vertex shader
+    const vsSource = `
+      attribute vec3 aPosition;
+      attribute vec3 aNormal;
+      uniform vec3 uLightDirection;
+      uniform vec3 uCameraPosition;
+      uniform float uTime;
+      varying float vLightIntensity;
+      varying vec3 vWorldPosition;
+
+      void main() {
+        vec3 position = aPosition;
+        vec3 normal = aNormal;
+        vec3 lightDir = normalize(uLightDirection);
+        float intensity = max(dot(normal, lightDir), 0.0);
+        vLightIntensity = intensity;
+        vWorldPosition = position;
+        vec4 modelViewPosition = vec4(position, 1.0);
+        gl_Position = modelViewPosition;
+      }
+    `;
+
+    // Fragment shader
+    const fsSource = `
+      precision mediump float;
+      varying float vLightIntensity;
+      varying vec3 vWorldPosition;
+      uniform vec3 uColor;
+
+      void main() {
+        vec3 color = uColor * vLightIntensity;
+        gl_FragColor = vec4(color, 1.0);
+      }
+    `;
+
+    // Generate sphere vertices and indices
+    function createSphere(radius, segmentsWidth, segmentsHeight) {
+      const vertices = [];
+      const normals = [];
+      const indices = [];
+
+      const pi = Math.PI;
+      const dTheta = pi / segmentsWidth;
+      const dPhi = pi / segmentsHeight;
+
+      for (let i = 0; i <= segmentsWidth; i++) {
+        const theta = i * dTheta;
+        for (let j = 0; j <= segmentsHeight; j++) {
+          const phi = j * dPhi;
+
+          const x = radius * Math.sin(theta) * Math.sin(phi);
+          const y = radius * Math.cos(theta);
+          const z = radius * Math.sin(theta) * Math.cos(phi);
+
+          vertices.push(x, y, z);
+          normals.push(x, y, z);
+        }
+      }
+
+      for (let i = 0; i < segmentsWidth; i++) {
+        for (let j = 0; j < segmentsHeight; j++) {
+          const a = i * (segmentsHeight + 1) + j;
+          const b = a + (segmentsHeight + 1);
+          const c = a + 1;
+          const d = b + 1;
+
+          indices.push(a, b, c);
+          indices.push(c, b, d);
+        }
+      }
+
+      return { vertices, normals, indices };
+    }
+
+    // Initialize WebGL
+    const canvas = document.getElementById('glCanvas');
+    const gl = canvas.getContext('webgl2');
+
+    if (!gl) {
+      alert('WebGL2 not supported');
+      throw new Error('WebGL2 not supported');
+    }
+
+    // Set canvas to fill window
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      gl.viewport(0, 0, canvas.width, canvas.height);
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // Compile shaders
+    function createShader(gl, type, source) {
+      const shader = gl.createShader(type);
+      gl.shaderSource(shader, source);
+      gl.compileShader(shader);
+      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+        console.error('Shader compile error:', gl.getShaderInfoLog(shader));
+        gl.deleteShader(shader);
+        return null;
+      }
+      return shader;
+    }
+
+    function createProgram(gl, vertexShader, fragmentShader) {
+      const program = gl.createProgram();
+      gl.attachShader(program, vertexShader);
+      gl.attachShader(program, fragmentShader);
+      gl.linkProgram(program);
+      if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+        console.error('Program link error:', gl.getProgramInfoLog(program));
+        gl.deleteProgram(program);
+        return null;
+      }
+      return program;
+    }
+
+    // Create sphere
+    const sphere = createSphere(1.0, 30, 30); // ~2000 triangles
+    const vertexCount = sphere.vertices.length / 3;
+    const indexCount = sphere.indices.length;
+
+    // Create buffers
+    const positionBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(sphere.vertices), gl.STATIC_DRAW);
+
+    const normalBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(sphere.normals), gl.STATIC_DRAW);
+
+    const indexBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(sphere.indices), gl.STATIC_DRAW);
+
+    // Compile shaders
+    const vertexShader = createShader(gl, gl.VERTEX_SHADER, vsSource);
+    const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fsSource);
+    const program = createProgram(gl, vertexShader, fragmentShader);
+
+    gl.useProgram(program);
+
+    // Get attribute locations
+    const positionLocation = gl.getAttribLocation(program, 'aPosition');
+    const normalLocation = gl.getAttribLocation(program, 'aNormal');
+
+    // Get uniform locations
+    const lightDirectionLocation = gl.getUniformLocation(program, 'uLightDirection');
+    const cameraPositionLocation = gl.getUniformLocation(program, 'uCameraPosition');
+    const timeLocation = gl.getUniformLocation(program, 'uTime');
+    const colorLocation = gl.getUniformLocation(program, 'uColor');
+
+    // Set uniforms
+    gl.uniform3f(lightDirectionLocation, 1.0, 1.0, 1.0); // Directional light
+    gl.uniform3f(cameraPositionLocation, 0.0, 0.0, 0.0); // Camera position
+    gl.uniform3f(colorLocation, 0.8, 0.2, 0.2); // Reddish color
+
+    // Enable vertex attributes
+    gl.enableVertexAttribArray(positionLocation);
+    gl.enableVertexAttribArray(normalLocation);
+
+    // Bind buffers
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+    gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 0, 0);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
+    gl.vertexAttribPointer(normalLocation, 3, gl.FLOAT, false, 0, 0);
+
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+
+    // Animation state
+    let rotation = [0, 0, 0];
+    let rotationSpeed = [0.01, 0.01, 0.01];
+    let isDragging = false;
+    let lastMouseX = 0;
+    let lastMouseY = 0;
+
+    // Mouse event handlers
+    canvas.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      lastMouseX = e.clientX;
+      lastMouseY = e.clientY;
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+      if (isDragging) {
+        const deltaX = e.clientX - lastMouseX;
+        const deltaY = e.clientY - lastMouseY;
+        rotationSpeed[0] = deltaX * 0.001;
+        rotationSpeed[1] = deltaY * 0.001;
+        lastMouseX = e.clientX;
+        lastMouseY = e.clientY;
+      }
+    });
+
+    canvas.addEventListener('mouseup', () => {
+      isDragging = false;
+    });
+
+    canvas.addEventListener('mouseleave', () => {
+      isDragging = false;
+    });
+
+    // Render loop
+    function render(time) {
+      time *= 0.001; // Convert to seconds
+
+      // Update rotation
+      rotation[0] += rotationSpeed[0];
+      rotation[1] += rotationSpeed[1];
+      rotation[2] += rotationSpeed[2];
+
+      // Apply damping to rotation speed if not dragging
+      if (!isDragging) {
+        rotationSpeed[0] *= 0.95;
+        rotationSpeed[1] *= 0.95;
+        rotationSpeed[2] *= 0.95;
+      }
+
+      // Clear canvas
+      gl.clearColor(0.0, 0.0, 0.0, 1.0);
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+      // Set time uniform
+      gl.uniform1f(timeLocation, time);
+
+      // Rotate the sphere
+      const cosX = Math.cos(rotation[0]);
+      const sinX = Math.sin(rotation[0]);
+      const cosY = Math.cos(rotation[1]);
+      const sinY = Math.sin(rotation[1]);
+      const cosZ = Math.cos(rotation[2]);
+      const sinZ = Math.sin(rotation[2]);
+
+      // Apply rotation to light direction (for visual effect)
+      let lightDir = [1.0, 1.0, 1.0];
+      // Rotate light direction around Y axis
+      const newLightX = lightDir[0] * cosY - lightDir[2] * sinY;
+      const newLightZ = lightDir[0] * sinY + lightDir[2] * cosY;
+      lightDir = [newLightX, lightDir[1], newLightZ];
+
+      // Update light direction
+      gl.uniform3f(lightDirectionLocation, lightDir[0], lightDir[1], lightDir[2]);
+
+      // Draw the sphere
+      gl.drawElements(gl.TRIANGLES, indexCount, gl.UNSIGNED_SHORT, 0);
+
+      // Request next frame
+      requestAnimationFrame(render);
+    }
+
+    // Start rendering
+    requestAnimationFrame(render);
+  </script>
+</body>
+</html>

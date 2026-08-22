@@ -1,0 +1,87 @@
+{
+  "run": "qwen38_8bit_easy_v1",
+  "suite": "easy",
+  "adapter": "anvil",
+  "harness_version": "1.0.0",
+  "started_utc": "2026-08-18T21:47:37Z",
+  "load_s": 3.3,
+  "tasks": {
+    "t01_create_run": {
+      "pass": true,
+      "seconds": 17.6,
+      "detail": "",
+      "error": ""
+    },
+    "t02_fix_bug": {
+      "pass": true,
+      "seconds": 34.1,
+      "detail": "",
+      "error": ""
+    },
+    "t03_rename_across_files": {
+      "pass": true,
+      "seconds": 80.6,
+      "detail": "",
+      "error": ""
+    },
+    "t04_extract_value": {
+      "pass": true,
+      "seconds": 15.1,
+      "detail": "",
+      "error": ""
+    },
+    "t05_find_marker": {
+      "pass": true,
+      "seconds": 31.0,
+      "detail": "",
+      "error": ""
+    },
+    "t06_precise_append": {
+      "pass": true,
+      "seconds": 26.4,
+      "detail": "",
+      "error": ""
+    },
+    "t07_write_json": {
+      "pass": true,
+      "seconds": 23.1,
+      "detail": "",
+      "error": ""
+    },
+    "t08_tricky_escapes": {
+      "pass": true,
+      "seconds": 25.3,
+      "detail": "",
+      "error": ""
+    },
+    "t09_count_files": {
+      "pass": true,
+      "seconds": 28.2,
+      "detail": "",
+      "error": ""
+    },
+    "t10_extract_constant": {
+      "pass": true,
+      "seconds": 34.5,
+      "detail": "",
+      "error": ""
+    },
+    "t11_csv_sum": {
+      "pass": true,
+      "seconds": 15.6,
+      "detail": "",
+      "error": ""
+    },
+    "t12_delete_right_file": {
+      "pass": true,
+      "seconds": 19.2,
+      "detail": "",
+      "error": ""
+    }
+  },
+  "model": "lmstudio-community/Qwen3.8-27B-MLX-8bit",
+  "dialect": "native",
+  "backend": "mlx",
+  "prompt_file": "",
+  "score": "12/12"
+}

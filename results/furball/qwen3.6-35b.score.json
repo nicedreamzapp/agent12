@@ -1,0 +1,23 @@
+{
+ "label": "qwen3.6-35b",
+ "errors": [
+  "Uncaught TypeError: Failed to execute 'bindBuffer' on 'WebGL2RenderingContext': parameter 2 is not of type 'WebGLBuffer'. @file:///Users/dtribe/bench-llm/agent12/results/furball/qwen3.6-35b.html:206"
+ ],
+ "loaded": true,
+ "webgl2": true,
+ "fps": 120.9,
+ "coverage": 0.0,
+ "detail": 0.0,
+ "px": 810000,
+ "idle_change": 0.0,
+ "pet_band": 0.0,
+ "pet_ctrl": 0.0,
+ "pet_ratio": 0.0,
+ "relax_change": 0.0,
+ "pet_change": 0.0,
+ "drew": false,
+ "furry": false,
+ "responds": false,
+ "springs_back": false,
+ "pass": false
+}
