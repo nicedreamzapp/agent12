@@ -1,10 +1,10 @@
 {
   "hardware_default": "Apple M5, 128 GB unified memory",
-  "updated": "2026-08-10",
+  "updated": "2026-08-22",
   "rows": {
     "qwen3-coder-30b": {
       "display": "Qwen3-Coder-30B-A3B (MLX 8-bit)",
-      "params": "30B MoE, 3B active \u00b7 native tool calls",
+      "params": "30B MoE, 3B active · native tool calls",
       "tok_s": 84.3,
       "easy": "qwen30_easy_v1",
       "hard": "qwen30_hard_v1",
@@ -12,7 +12,7 @@
     },
     "qwen3.6-35b": {
       "display": "Qwen3.6-35B-A3B (MLX 8-bit)",
-      "params": "35B MoE, 3B active \u00b7 native tool calls",
+      "params": "35B MoE, 3B active · native tool calls",
       "tok_s": 46.2,
       "easy": "qwen36_easy_v2",
       "hard": "qwen36_hard_v1",
@@ -20,23 +20,31 @@
     },
     "gemma-4-31b": {
       "display": "Gemma 4 31B (MLX 4-bit)",
-      "params": "31B dense \u00b7 prompted-XML dialect",
+      "params": "31B dense · prompted-XML dialect",
       "tok_s": 25.6,
       "easy": "gemma_easy_v1",
       "hard": "gemma_hard_v1",
       "kind": "local"
     },
+    "qwen3.8-27b-8bit": {
+      "display": "Qwen3.8-27B (MLX 8-bit, dense)",
+      "params": "27B dense · native tool calls · 8/8 hard at an 8000-token budget, 16.9x slower than Qwen3.6 (writeup)",
+      "tok_s": null,
+      "easy": "qwen38_8bit_easy_v1",
+      "hard": "qwen38_8bit_hard_s2",
+      "kind": "local"
+    },
     "deepseek-v4-flash-0731": {
       "display": "DeepSeek V4 Flash (2-bit, 0731 imatrix)",
-      "params": "284B MoE \u00b7 ds4.c engine",
+      "params": "284B MoE · ds4.c engine",
       "tok_s": 8.4,
       "easy": "ds4_0731_easy_v1",
       "hard": "ds4_0731_hard_v1",
       "kind": "local"
     },
     "deepseek-v4-flash-orig": {
-      "display": "DeepSeek V4 Flash (2-bit, original) \u00b7 retired 8/10, weights deleted",
-      "params": "284B MoE \u00b7 ds4.c engine",
+      "display": "DeepSeek V4 Flash (2-bit, original) · retired 8/10, weights deleted",
+      "params": "284B MoE · ds4.c engine",
       "tok_s": 8.4,
       "easy": "ds4_orig_easy_v1",
       "hard": "ds4_orig_hard_v1",
@@ -51,5 +59,23 @@
       "hardware": "Anthropic API",
       "kind": "cloud"
     }
-  }
+  },
+  "reported": [
+    {
+      "display": "Meta Muse Glimmer 30B",
+      "params": "30B dense · multimodal · Apache 2.0",
+      "scores": "MCP-Atlas 75.5 · SWE-bench Verified 76.0 · SWE-bench Pro 51.2 · Terminal-Bench 2.1 51.7 · τ3-Banking 23.5",
+      "source": "Meta, official model card",
+      "url": "https://huggingface.co/meta-models/Muse-Glimmer-30B",
+      "status": "Agent-12 run blocked until mlx_lm supports the muse_glimmer architecture"
+    },
+    {
+      "display": "NVIDIA Nemotron 3 Nano Omni 30B-A3B",
+      "params": "30B MoE, 3B active · text + vision + audio",
+      "scores": "OSWorld (computer use) 47.4",
+      "source": "NVIDIA, official model card",
+      "url": "https://huggingface.co/nvidia/Nemotron-3-Nano-Omni-30B-A3B-Reasoning-BF16",
+      "status": "Agent-12 run queued (our MLX runtime: nemotron-omni-mlx)"
+    }
+  ]
 }

@@ -64,7 +64,16 @@ def build():
               + f'<td class="hw">{html.escape(row.get("hardware", hw))}</td></tr>')
         (cloud_rows if row.get("kind") == "cloud" else local_rows).append(tr)
 
-    page = TEMPLATE.replace("{{LOCAL_ROWS}}", "\n".join(local_rows))
+    reported_rows = []
+    for r in meta.get("reported", []):
+        reported_rows.append(
+            f'<tr><td class="model">{html.escape(r["display"])}'
+            f'<span class="params">{html.escape(r.get("params", ""))}</span></td>'
+            f'<td>{html.escape(r["scores"])}</td>'
+            f'<td><a href="{html.escape(r["url"])}">{html.escape(r["source"])}</a></td>'
+            f'<td class="hw">{html.escape(r.get("status", ""))}</td></tr>')
+    page = TEMPLATE.replace("{{REPORTED_ROWS}}", "\n".join(reported_rows))
+    page = page.replace("{{LOCAL_ROWS}}", "\n".join(local_rows))
     page = page.replace("{{CLOUD_ROWS}}", "\n".join(cloud_rows))
     page = page.replace("{{UPDATED}}", meta.get("updated", ""))
     (OUT / "index.html").write_text(page)
@@ -151,6 +160,22 @@ TEMPLATE = """<!doctype html>
     </tr></thead>
     <tbody>
 {{CLOUD_ROWS}}
+    </tbody>
+  </table>
+  </div>
+
+  <h2>Vendor-reported (NOT Agent-12 numbers — credited, not competing)</h2>
+  <p style="margin:0 0 .5rem 0;">Models we have not run through Agent-12 yet. These scores are the vendor's own published numbers on the vendor's own benchmarks, linked to the source. They are not comparable to the tables above and move into the local table the day they get a real run.</p>
+  <div class="tablewrap">
+  <table>
+    <thead><tr>
+      <th>Model</th>
+      <th>Their published scores</th>
+      <th>Credit</th>
+      <th>Agent-12 status</th>
+    </tr></thead>
+    <tbody>
+{{REPORTED_ROWS}}
     </tbody>
   </table>
   </div>

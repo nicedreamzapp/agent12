@@ -64,6 +64,7 @@
 <tr><td class="model">Qwen3-Coder-30B-A3B (MLX 8-bit)<span class="params">30B MoE, 3B active · native tool calls</span></td><td class="score gold">12/12</td><td class="secs">42.6s</td><td class="score ">7/8</td><td class="secs">391.5s</td><td class="secs">84.3</td><td class="hw">Apple M5, 128 GB unified memory</td></tr>
 <tr><td class="model">Qwen3.6-35B-A3B (MLX 8-bit)<span class="params">35B MoE, 3B active · native tool calls</span></td><td class="score gold">12/12</td><td class="secs">64.2s</td><td class="score gold">8/8</td><td class="secs">125.2s</td><td class="secs">46.2</td><td class="hw">Apple M5, 128 GB unified memory</td></tr>
 <tr><td class="model">Gemma 4 31B (MLX 4-bit)<span class="params">31B dense · prompted-XML dialect</span></td><td class="score ">11/12</td><td class="secs">92.1s</td><td class="score gold">8/8</td><td class="secs">347.9s</td><td class="secs">25.6</td><td class="hw">Apple M5, 128 GB unified memory</td></tr>
+<tr><td class="model">Qwen3.8-27B (MLX 8-bit, dense)<span class="params">27B dense · native tool calls · 8/8 hard at an 8000-token budget, 16.9x slower than Qwen3.6 (writeup)</span></td><td class="score gold">12/12</td><td class="secs">350.7s</td><td class="score ">7/8</td><td class="secs">1155.9s</td><td class="secs">—</td><td class="hw">Apple M5, 128 GB unified memory</td></tr>
 <tr><td class="model">DeepSeek V4 Flash (2-bit, 0731 imatrix)<span class="params">284B MoE · ds4.c engine</span></td><td class="score gold">12/12</td><td class="secs">203.2s</td><td class="score gold">8/8</td><td class="secs">550.8s</td><td class="secs">8.4</td><td class="hw">Apple M5, 128 GB unified memory</td></tr>
 <tr><td class="model">DeepSeek V4 Flash (2-bit, original) · retired 8/10, weights deleted<span class="params">284B MoE · ds4.c engine</span></td><td class="score gold">12/12</td><td class="secs">376.1s</td><td class="score gold">8/8</td><td class="secs">842.4s</td><td class="secs">8.4</td><td class="hw">Apple M5, 128 GB unified memory</td></tr>
     </tbody>
@@ -86,6 +87,23 @@
   </table>
   </div>
 
+  <h2>Vendor-reported (NOT Agent-12 numbers — credited, not competing)</h2>
+  <p style="margin:0 0 .5rem 0;">Models we have not run through Agent-12 yet. These scores are the vendor's own published numbers on the vendor's own benchmarks, linked to the source. They are not comparable to the tables above and move into the local table the day they get a real run.</p>
+  <div class="tablewrap">
+  <table>
+    <thead><tr>
+      <th>Model</th>
+      <th>Their published scores</th>
+      <th>Credit</th>
+      <th>Agent-12 status</th>
+    </tr></thead>
+    <tbody>
+<tr><td class="model">Meta Muse Glimmer 30B<span class="params">30B dense · multimodal · Apache 2.0</span></td><td>MCP-Atlas 75.5 · SWE-bench Verified 76.0 · SWE-bench Pro 51.2 · Terminal-Bench 2.1 51.7 · τ3-Banking 23.5</td><td><a href="https://huggingface.co/meta-models/Muse-Glimmer-30B">Meta, official model card</a></td><td class="hw">Agent-12 run blocked until mlx_lm supports the muse_glimmer architecture</td></tr>
+<tr><td class="model">NVIDIA Nemotron 3 Nano Omni 30B-A3B<span class="params">30B MoE, 3B active · text + vision + audio</span></td><td>OSWorld (computer use) 47.4</td><td><a href="https://huggingface.co/nvidia/Nemotron-3-Nano-Omni-30B-A3B-Reasoning-BF16">NVIDIA, official model card</a></td><td class="hw">Agent-12 run queued (our MLX runtime: nemotron-omni-mlx)</td></tr>
+    </tbody>
+  </table>
+  </div>
+
   <div class="foot">
     <p><strong>How to trust a number here:</strong></p>
     <ul class="rules">
@@ -100,7 +118,7 @@
     · <a href="https://github.com/nicedreamzapp/agent12/blob/main/METHODOLOGY.md">methodology</a>
     · <a href="https://github.com/nicedreamzapp/agent12/blob/main/CONTAMINATION.md">contamination policy</a>.
     Cloud reference times include network/API round-trips — that is the honest
-    end-to-end experience. Updated 2026-08-10.</p>
+    end-to-end experience. Updated 2026-08-22.</p>
     <p style="margin-top:1rem;">Want to actually run the winner? Every row here plugs straight into
     <a href="https://github.com/nicedreamzapp/claude-code-local">Claude Code Local</a>
     — Claude Code, 100% on-device on Apple Silicon, no cloud. Ready-made MLX builds on
