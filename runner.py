@@ -21,7 +21,9 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
-HARNESS_VERSION = "1.0.0"
+from envcheck import interpreter_info, warn_min_python  # noqa: E402
+
+HARNESS_VERSION = "1.1.0"
 
 
 def main():
@@ -32,6 +34,9 @@ def main():
     ap.add_argument("--config", default="")
     ap.add_argument("--model", default="")
     args = ap.parse_args()
+
+    # the judges run the agent's code with this interpreter; say so out loud
+    warn_min_python()
 
     if args.model:
         cfg_path = Path(args.config or HERE / "configs" / "models.json")
@@ -73,6 +78,7 @@ def main():
 
     results = {"run": args.run, "suite": args.suite, "adapter": args.adapter,
                "harness_version": HARNESS_VERSION,
+               "interpreter": interpreter_info(),
                "started_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
                "load_s": load_s, "tasks": {}}
     results.update(adapter.info())

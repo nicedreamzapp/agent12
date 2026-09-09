@@ -39,6 +39,32 @@ as a model result.
   an agent that needs an hour for a 30-second task is not a usable agent,
   and the caps are identical for every row.
 
+## The interpreter is part of the grading conditions
+
+Judges run the agent's solution with `sys.executable`, so the interpreter
+that runs the harness grades the code. On Python 3.9 a correct solution
+annotated `list[str] | None` (PEP 604) raises `TypeError` at import and
+scores zero, while a solution that skipped annotations passes: the more
+modern answer is punished for the machine it landed on. System `python3`
+on a clean macOS install is 3.9, so this is the default outcome, not an
+exotic one.
+
+The judge-validation gate does not catch this on its own — the reference
+solutions are written in 3.9-compatible style, so `validate_judges.py`
+reports a clean 20/20 on 3.9 while live runs are still being mis-scored.
+Hence two explicit measures:
+
+- `validate_judges.py` **refuses to run** below the floor (3.10), because
+  judges validated under an interpreter nobody grades with prove nothing.
+- `runner.py` records `interpreter` (version, implementation, executable,
+  the floor, and whether it was met) in every `results/*.json`, so a row
+  is described by its own file rather than by the operator's memory. Below
+  the floor it still runs, and says so on stderr.
+
+`AGENT12_MIN_PYTHON=3.11` raises the floor for a suite that needs newer
+syntax; setting it lower is allowed, recorded in the results, and never
+silent.
+
 ## What a row reports
 
 - **score** — tasks passed / tasks in suite
@@ -48,6 +74,8 @@ as a model result.
 - **harness** — reference engine (with dialect: native tool-calls or
   prompted-XML) or a named external CLI via the command adapter
 - **quant/weights** — exact model file or repo revision
+- **interpreter** — the Python that ran the judges, because it decides
+  which syntax a correct answer is allowed to use
 
 ## Harness sensitivity (why the harness column exists)
 
