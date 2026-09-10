@@ -6,7 +6,7 @@ import json
 import subprocess
 import sys
 
-from . import Task
+from . import Task, answer_text
 
 ENV = {  # runner applies these as AGENT_* defaults for this suite
     "AGENT_MAX_TOKENS": "1024",
@@ -94,7 +94,7 @@ def t04_setup(d):
 
 def t04_check(d):
     p = d / "answer.txt"
-    return p.exists() and p.read_text().strip() == "zx91-alpha"
+    return p.exists() and answer_text(p).strip() == "zx91-alpha"
 
 def t04_good(d):
     w(d, "answer.txt", "zx91-alpha\n")
@@ -111,7 +111,7 @@ def t05_setup(d):
 
 def t05_check(d):
     p = d / "found.txt"
-    return p.exists() and p.read_text().strip() == "gamma.py"
+    return p.exists() and answer_text(p).strip() == "gamma.py"
 
 def t05_good(d):
     w(d, "found.txt", "gamma.py\n")
@@ -149,7 +149,7 @@ def t07_check(d):
     if not p.exists():
         return False
     try:
-        cfg = json.loads(p.read_text())
+        cfg = json.loads(answer_text(p))
     except json.JSONDecodeError:
         return False
     return (cfg.get("name") == "demo-app" and cfg.get("port") == 3000
@@ -196,7 +196,7 @@ def t09_setup(d):
 
 def t09_check(d):
     p = d / "count.txt"
-    return p.exists() and p.read_text().strip() == "3"
+    return p.exists() and answer_text(p).strip() == "3"
 
 def t09_good(d):
     w(d, "count.txt", "3\n")
@@ -229,7 +229,7 @@ def t11_setup(d):
 
 def t11_check(d):
     p = d / "revenue_total.txt"
-    return p.exists() and p.read_text().strip() in ("103", "103.0")
+    return p.exists() and answer_text(p).strip() in ("103", "103.0")
 
 def t11_good(d):
     w(d, "revenue_total.txt", "103\n")
