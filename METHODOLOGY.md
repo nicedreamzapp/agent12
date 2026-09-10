@@ -65,6 +65,19 @@ Hence two explicit measures:
 syntax; setting it lower is allowed, recorded in the results, and never
 silent.
 
+## A judge must grade the answer, not the file it arrived in
+
+`validate_judges.py` checks each judge with a reference solution written by
+the same hand as the judge, in the same shape. That agreement is exactly
+what hides a judge grading FORM instead of meaning, so the gate also
+re-runs every known-good answer with a UTF-8 BOM prepended to the answer
+file. `"\ufeff"` is not whitespace in Python: `.strip()` leaves it in place
+and `json.loads` refuses the file, so before this an invisible character
+written by the agent's editor decided the outcome on every answer-file task
+in both suites (5 easy, 2 hard). Judges now read answers through
+`tasks.answer_text()`, which drops a leading BOM and nothing else — fences
+and prefixes are content and are still graded.
+
 ## What a row reports
 
 - **score** — tasks passed / tasks in suite

@@ -16,7 +16,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-from . import Task
+from . import Task, answer_text
 
 ENV = {
     "AGENT_MAX_TOKENS": "3000",
@@ -255,7 +255,7 @@ def h4_check(d):
     if "import csv" in body or "from csv" in body:
         return False, "used the banned csv module"
     try:
-        got = json.loads(p.read_text())
+        got = json.loads(answer_text(p))
     except json.JSONDecodeError:
         return False
     return got == H4_EXPECT
@@ -419,7 +419,7 @@ def h6_check(d):
         return False
     exp = sorted(((dt, msg) for _, dt, msg in _h6_lines()))
     want = [f"{dt.strftime('%Y-%m-%dT%H:%M:%SZ')} {msg}" for dt, msg in exp]
-    got = [ln.rstrip() for ln in p.read_text().strip().splitlines()]
+    got = [ln.rstrip() for ln in answer_text(p).strip().splitlines()]
     return got == want
 
 def _h6_solve(d, do_sort):

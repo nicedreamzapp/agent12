@@ -12,6 +12,20 @@ from dataclasses import dataclass
 from typing import Callable, Optional
 
 
+def answer_text(path):
+    """Read an answer file the way a judge should read it.
+
+    A UTF-8 BOM is not whitespace in Python: `.strip()` leaves "\ufeff" in
+    place and `json.loads` refuses the file, so an editor that writes a BOM
+    decides the outcome instead of the answer. Judges grade the answer, so
+    the mark is dropped here rather than in every check().
+
+    Only the leading BOM is removed. Everything else is left exactly as the
+    agent wrote it, including fences and prefixes, which are content.
+    """
+    return path.read_text(encoding="utf-8-sig")
+
+
 @dataclass
 class Task:
     name: str
