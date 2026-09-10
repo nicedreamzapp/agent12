@@ -10,6 +10,10 @@ than no judge: it silently converts model skill into noise. This gate is
 how we caught the original h3 probe demanding an eviction order that
 contradicted its own spec.
 
+Refuses to run below the interpreter floor in envcheck.py: the judges
+execute solutions with sys.executable, so validating them on 3.9 says
+nothing about how they behave on the 3.10+ syntax models actually write.
+
 Run: python3 validate_judges.py    (exits non-zero on any mismatch)
 """
 import shutil
@@ -18,6 +22,7 @@ import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from envcheck import require_min_python  # noqa: E402
 from tasks import load_suite  # noqa: E402
 
 
@@ -37,6 +42,8 @@ def outcome(task, solver, root):
 
 
 def main():
+    # a judge validated under the wrong interpreter proves nothing
+    require_min_python()
     root = tempfile.mkdtemp(prefix="agent12-judgeval-")
     bad_judges = 0
     for suite_name in ("easy", "hard"):

@@ -49,6 +49,12 @@ scores zero. Judges run the model's artifacts in a fresh subprocess.
 
 ## Running it
 
+Requires Python 3.10+. The judges execute the agent's solution with the
+interpreter that runs the harness, so on 3.9 (the system `python3` on
+macOS) a correct answer using `list[str] | None` is scored as a failure.
+`validate_judges.py` refuses to run below 3.10; override deliberately with
+`AGENT12_MIN_PYTHON`. Every run records its interpreter in the results.
+
 ```bash
 # 1. validate the judges (required — the runner assumes this passed)
 python3 validate_judges.py
