@@ -29,7 +29,7 @@ HARNESS_VERSION = "1.1.0"
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--suite", required=True, choices=["easy", "hard"])
-    ap.add_argument("--adapter", default="anvil", choices=["anvil", "command"])
+    ap.add_argument("--adapter", default="anvil", choices=["anvil", "anvil_dflash", "command"])
     ap.add_argument("--run", required=True)
     ap.add_argument("--config", default="")
     ap.add_argument("--model", default="")
@@ -118,6 +118,8 @@ def main():
         extra = f"  [{detail}]" if detail else ""
         print(f"  {'PASS' if ok else 'FAIL'}  {task.name}  ({took}s){extra}", flush=True)
 
+    if hasattr(adapter, "stats"):
+        results["gen_stats"] = adapter.stats()
     results["score"] = f"{passed}/{len(suite.TASKS)}"
     out = results_dir / f"{args.run}.json"
     out.write_text(json.dumps(results, indent=2))

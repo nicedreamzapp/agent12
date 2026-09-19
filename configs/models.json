@@ -18,7 +18,7 @@
   "qwen3.8-27b": {
     "adapter": "anvil",
     "display": "Qwen3.8-27B (MLX 4-bit, dense)",
-    "_note": "challenger 2026-08-18, BEATEN — 23/28 (82.1%) vs qwen3.6's 91/92 (98.9%), and ~3.5x slower. h3_lru_ttl_cache and h7_spec_gauntlet fail in BOTH hard sweeps, h7 at 0/10 rubric points twice. DENSE 27B, not an MoE — the 3.8 line has no mid-size MoE, it jumps 27B -> 2.4T-A95B, so this is NOT a like-for-like successor to qwen3.6-35b-a3b. CAVEAT: 4-bit build (only one Matt owns) vs qwen3.6's 8-bit, so the loss is not purely architectural. Full writeup: writeups/qwen38_vs_qwen36.md",
+    "_note": "challenger 2026-08-18, BEATEN \u2014 23/28 (82.1%) vs qwen3.6's 91/92 (98.9%), and ~3.5x slower. h3_lru_ttl_cache and h7_spec_gauntlet fail in BOTH hard sweeps, h7 at 0/10 rubric points twice. DENSE 27B, not an MoE \u2014 the 3.8 line has no mid-size MoE, it jumps 27B -> 2.4T-A95B, so this is NOT a like-for-like successor to qwen3.6-35b-a3b. CAVEAT: 4-bit build (only one Matt owns) vs qwen3.6's 8-bit, so the loss is not purely architectural. Full writeup: writeups/qwen38_vs_qwen36.md",
     "env": {
       "AGENT_MODEL": "EigenLabs/Qwen3.8-27B-4bit",
       "AGENT_DIALECT": "native"
@@ -27,7 +27,7 @@
   "qwen3.8-27b-8bit": {
     "adapter": "anvil",
     "display": "Qwen3.8-27B (MLX 8-bit, dense)",
-    "_note": "SETTLED 2026-08-18 — NOT less capable, just 16.9x slower. At an equal generous budget (AGENT_MAX_TOKENS=8000, AGENT_MAX_STEPS=40) BOTH this and qwen3.6-35b score a perfect 8/8 hard; qwen3.6 does it in 122.3s, this takes 2065.3s. Its earlier 89.3% under the suite's 3000-token discipline was the cap truncating a <think>-block reasoning model, NOT a capability gap: h3 needed 613s and h7 needed 754s, then both passed. Keep qwen3.6 as the daily driver; this earns no launcher. Full writeup: writeups/qwen38_vs_qwen36.md",
+    "_note": "SETTLED 2026-08-18 \u2014 NOT less capable, just 16.9x slower. At an equal generous budget (AGENT_MAX_TOKENS=8000, AGENT_MAX_STEPS=40) BOTH this and qwen3.6-35b score a perfect 8/8 hard; qwen3.6 does it in 122.3s, this takes 2065.3s. Its earlier 89.3% under the suite's 3000-token discipline was the cap truncating a <think>-block reasoning model, NOT a capability gap: h3 needed 613s and h7 needed 754s, then both passed. Keep qwen3.6 as the daily driver; this earns no launcher. Full writeup: writeups/qwen38_vs_qwen36.md",
     "env": {
       "AGENT_MODEL": "lmstudio-community/Qwen3.8-27B-MLX-8bit",
       "AGENT_DIALECT": "native"
@@ -77,13 +77,24 @@
   },
   "claude-cloud-reference": {
     "adapter": "anvil",
-    "display": "Claude (cloud reference — same engine, remote model)",
+    "display": "Claude (cloud reference \u2014 same engine, remote model)",
     "_note": "cloud comparison point, clearly labeled; set AGENT_AUTH_TOKEN to a real key before running",
     "env": {
       "AGENT_MODEL": "claude-sonnet-5",
       "AGENT_BACKEND": "http",
       "AGENT_BASE_URL": "https://api.anthropic.com",
       "AGENT_LEASE_GB": "0"
+    }
+  },
+  "qwen3.8-27b-8bit-dflash": {
+    "adapter": "anvil_dflash",
+    "display": "Qwen3.8-27B (MLX 8-bit, dense) + DFlash 2 drafter",
+    "_note": "2026-09-19 rerun: same lmstudio-community 8-bit weights as the 2026-08-18 runs, Anvil in-process, generation through mlx-dspark 0.14 dflash_generate with incoai/Qwen3.8-27B-DFlash2 (greedy = lossless). Run with ~/.local/qwen-fast/bin/python. No cross-turn KV prefix reuse on this path (server prefix cache crashed); every turn re-prefills. See writeups/qwen38_dflash_rerun.md",
+    "env": {
+      "AGENT_MODEL": "lmstudio-community/Qwen3.8-27B-MLX-8bit",
+      "AGENT_DIALECT": "native",
+      "AGENT_DFLASH_DRAFTER": "incoai/Qwen3.8-27B-DFlash2",
+      "AGENT_LEASE_GB": "46"
     }
   }
 }

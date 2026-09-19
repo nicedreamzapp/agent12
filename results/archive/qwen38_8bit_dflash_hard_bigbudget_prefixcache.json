@@ -1,0 +1,70 @@
+{
+  "run": "qwen38_8bit_dflash_hard_bigbudget",
+  "suite": "hard",
+  "adapter": "anvil",
+  "harness_version": "1.1.0",
+  "interpreter": {
+    "python_version": "3.12.13",
+    "python_implementation": "CPython",
+    "executable": "/Users/dtribe/.local/mlx-server/bin/python",
+    "min_python_required": "3.10",
+    "meets_min_python": true
+  },
+  "started_utc": "2026-09-19T09:35:55Z",
+  "load_s": 0.0,
+  "tasks": {
+    "h1_interval_merge": {
+      "pass": true,
+      "seconds": 102.0,
+      "detail": "",
+      "error": ""
+    },
+    "h2_fix_iteration_bug": {
+      "pass": true,
+      "seconds": 11.1,
+      "detail": "",
+      "error": ""
+    },
+    "h3_lru_ttl_cache": {
+      "pass": true,
+      "seconds": 197.2,
+      "detail": "",
+      "error": ""
+    },
+    "h4_csv_no_csv": {
+      "pass": true,
+      "seconds": 55.2,
+      "detail": "",
+      "error": ""
+    },
+    "h5_topo_lex": {
+      "pass": true,
+      "seconds": 25.4,
+      "detail": "",
+      "error": ""
+    },
+    "h6_log_normalize": {
+      "pass": false,
+      "seconds": 73.6,
+      "detail": "",
+      "error": ""
+    },
+    "h7_spec_gauntlet": {
+      "pass": false,
+      "seconds": 0.0,
+      "detail": "0/10",
+      "error": "URLError: <urlopen error [Errno 61] Connection refused>"
+    },
+    "h8_cache_collision": {
+      "pass": false,
+      "seconds": 0.0,
+      "detail": "",
+      "error": "URLError: <urlopen error [Errno 61] Connection refused>"
+    }
+  },
+  "model": "lmstudio-community/Qwen3.8-27B-MLX-8bit",
+  "dialect": "native",
+  "backend": "http",
+  "prompt_file": "",
+  "score": "5/8"
+}

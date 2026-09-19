@@ -1,0 +1,102 @@
+{
+  "run": "qwen38_8bit_dflash_easy_v1",
+  "suite": "easy",
+  "adapter": "anvil_dflash",
+  "harness_version": "1.1.0",
+  "interpreter": {
+    "python_version": "3.14.5",
+    "python_implementation": "CPython",
+    "executable": "/Users/dtribe/.local/qwen-fast/bin/python",
+    "min_python_required": "3.10",
+    "meets_min_python": true
+  },
+  "started_utc": "2026-09-19T10:05:50Z",
+  "load_s": 4.6,
+  "tasks": {
+    "t01_create_run": {
+      "pass": true,
+      "seconds": 7.8,
+      "detail": "",
+      "error": ""
+    },
+    "t02_fix_bug": {
+      "pass": true,
+      "seconds": 15.8,
+      "detail": "",
+      "error": ""
+    },
+    "t03_rename_across_files": {
+      "pass": true,
+      "seconds": 11.7,
+      "detail": "",
+      "error": ""
+    },
+    "t04_extract_value": {
+      "pass": true,
+      "seconds": 7.2,
+      "detail": "",
+      "error": ""
+    },
+    "t05_find_marker": {
+      "pass": true,
+      "seconds": 11.5,
+      "detail": "",
+      "error": ""
+    },
+    "t06_precise_append": {
+      "pass": true,
+      "seconds": 8.6,
+      "detail": "",
+      "error": ""
+    },
+    "t07_write_json": {
+      "pass": true,
+      "seconds": 5.5,
+      "detail": "",
+      "error": ""
+    },
+    "t08_tricky_escapes": {
+      "pass": true,
+      "seconds": 9.2,
+      "detail": "",
+      "error": ""
+    },
+    "t09_count_files": {
+      "pass": true,
+      "seconds": 8.2,
+      "detail": "",
+      "error": ""
+    },
+    "t10_extract_constant": {
+      "pass": true,
+      "seconds": 17.2,
+      "detail": "",
+      "error": ""
+    },
+    "t11_csv_sum": {
+      "pass": true,
+      "seconds": 9.2,
+      "detail": "",
+      "error": ""
+    },
+    "t12_delete_right_file": {
+      "pass": true,
+      "seconds": 10.1,
+      "detail": "",
+      "error": ""
+    }
+  },
+  "model": "lmstudio-community/Qwen3.8-27B-MLX-8bit",
+  "dialect": "native",
+  "backend": "mlx+dflash",
+  "drafter": "incoai/Qwen3.8-27B-DFlash2",
+  "prompt_file": "",
+  "gen_stats": {
+    "gen_tokens": 2383,
+    "gen_seconds": 118.2,
+    "tok_s_incl_prefill": 20.2,
+    "mean_accept": 6.77,
+    "generate_calls": 41
+  },
+  "score": "12/12"
+}

@@ -17,7 +17,10 @@ def load_adapter(name):
     if name == "anvil":
         from .anvil import AnvilAdapter
         return AnvilAdapter()
+    if name == "anvil_dflash":
+        from .anvil_dflash import AnvilDFlashAdapter
+        return AnvilDFlashAdapter()
     if name == "command":
         from .command import CommandAdapter
         return CommandAdapter()
-    raise SystemExit(f"unknown adapter: {name!r} (expected anvil|command)")
+    raise SystemExit(f"unknown adapter: {name!r} (expected anvil|anvil_dflash|command)")

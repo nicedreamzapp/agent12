@@ -13,6 +13,8 @@ their prose.
 100% on-device on Apple Silicon. Live board: [nicedreamzapp.github.io/agent12](https://nicedreamzapp.github.io/agent12/).
 MLX builds of the fighters: [huggingface.co/divinetribe](https://huggingface.co/divinetribe).
 
+**2026-09-19:** Qwen3.8-27B (8-bit) rerun with the DFlash 2 drafter: 12/12 easy and 7/8 hard at roughly 3x the speed of the plain run, still about 3x slower than Qwen3.6-35B-A3B (see `writeups/qwen38_dflash_rerun.md`).
+
 **2026-08-22:** Qwen3.8-27B (8-bit) joins the local table from its own runs (see `writeups/qwen38_vs_qwen36.md`). Muse Glimmer 30B and Nemotron 3 Nano Omni appear in a separate **vendor-reported** section with their publishers' own numbers, credited and linked, until they get a real Agent-12 run.
 
 ## What makes this benchmark different

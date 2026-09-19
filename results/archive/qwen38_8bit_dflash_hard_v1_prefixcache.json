@@ -1,0 +1,70 @@
+{
+  "run": "qwen38_8bit_dflash_hard_v1",
+  "suite": "hard",
+  "adapter": "anvil",
+  "harness_version": "1.1.0",
+  "interpreter": {
+    "python_version": "3.12.13",
+    "python_implementation": "CPython",
+    "executable": "/Users/dtribe/.local/mlx-server/bin/python",
+    "min_python_required": "3.10",
+    "meets_min_python": true
+  },
+  "started_utc": "2026-09-19T09:29:14Z",
+  "load_s": 0.0,
+  "tasks": {
+    "h1_interval_merge": {
+      "pass": true,
+      "seconds": 73.9,
+      "detail": "",
+      "error": ""
+    },
+    "h2_fix_iteration_bug": {
+      "pass": true,
+      "seconds": 7.0,
+      "detail": "",
+      "error": ""
+    },
+    "h3_lru_ttl_cache": {
+      "pass": false,
+      "seconds": 66.6,
+      "detail": "",
+      "error": ""
+    },
+    "h4_csv_no_csv": {
+      "pass": true,
+      "seconds": 63.9,
+      "detail": "",
+      "error": ""
+    },
+    "h5_topo_lex": {
+      "pass": true,
+      "seconds": 27.3,
+      "detail": "",
+      "error": ""
+    },
+    "h6_log_normalize": {
+      "pass": false,
+      "seconds": 15.1,
+      "detail": "",
+      "error": ""
+    },
+    "h7_spec_gauntlet": {
+      "pass": true,
+      "seconds": 92.8,
+      "detail": "10/10",
+      "error": ""
+    },
+    "h8_cache_collision": {
+      "pass": true,
+      "seconds": 24.4,
+      "detail": "",
+      "error": ""
+    }
+  },
+  "model": "lmstudio-community/Qwen3.8-27B-MLX-8bit",
+  "dialect": "native",
+  "backend": "http",
+  "prompt_file": "",
+  "score": "6/8"
+}

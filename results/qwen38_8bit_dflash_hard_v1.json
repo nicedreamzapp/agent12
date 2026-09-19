@@ -1,0 +1,78 @@
+{
+  "run": "qwen38_8bit_dflash_hard_v1",
+  "suite": "hard",
+  "adapter": "anvil_dflash",
+  "harness_version": "1.1.0",
+  "interpreter": {
+    "python_version": "3.14.5",
+    "python_implementation": "CPython",
+    "executable": "/Users/dtribe/.local/qwen-fast/bin/python",
+    "min_python_required": "3.10",
+    "meets_min_python": true
+  },
+  "started_utc": "2026-09-19T10:07:55Z",
+  "load_s": 2.8,
+  "tasks": {
+    "h1_interval_merge": {
+      "pass": false,
+      "seconds": 189.5,
+      "detail": "",
+      "error": ""
+    },
+    "h2_fix_iteration_bug": {
+      "pass": true,
+      "seconds": 22.9,
+      "detail": "",
+      "error": ""
+    },
+    "h3_lru_ttl_cache": {
+      "pass": true,
+      "seconds": 40.8,
+      "detail": "",
+      "error": ""
+    },
+    "h4_csv_no_csv": {
+      "pass": true,
+      "seconds": 27.6,
+      "detail": "",
+      "error": ""
+    },
+    "h5_topo_lex": {
+      "pass": true,
+      "seconds": 20.4,
+      "detail": "",
+      "error": ""
+    },
+    "h6_log_normalize": {
+      "pass": true,
+      "seconds": 40.3,
+      "detail": "",
+      "error": ""
+    },
+    "h7_spec_gauntlet": {
+      "pass": true,
+      "seconds": 32.5,
+      "detail": "10/10",
+      "error": ""
+    },
+    "h8_cache_collision": {
+      "pass": true,
+      "seconds": 27.4,
+      "detail": "",
+      "error": ""
+    }
+  },
+  "model": "lmstudio-community/Qwen3.8-27B-MLX-8bit",
+  "dialect": "native",
+  "backend": "mlx+dflash",
+  "drafter": "incoai/Qwen3.8-27B-DFlash2",
+  "prompt_file": "",
+  "gen_stats": {
+    "gen_tokens": 11381,
+    "gen_seconds": 396.6,
+    "tok_s_incl_prefill": 28.7,
+    "mean_accept": 6.43,
+    "generate_calls": 43
+  },
+  "score": "7/8"
+}

@@ -1,6 +1,6 @@
 {
   "hardware_default": "Apple M5, 128 GB unified memory",
-  "updated": "2026-08-22",
+  "updated": "2026-09-19",
   "rows": {
     "qwen3-coder-30b": {
       "display": "Qwen3-Coder-30B-A3B (MLX 8-bit)",
@@ -32,6 +32,14 @@
       "tok_s": null,
       "easy": "qwen38_8bit_easy_v1",
       "hard": "qwen38_8bit_hard_s2",
+      "kind": "local"
+    },
+    "qwen3.8-27b-8bit-dflash": {
+      "display": "Qwen3.8-27B (MLX 8-bit, dense) + DFlash 2 drafter",
+      "params": "27B dense · native tool calls · incoai DFlash2 drafter, ~3x faster than without it, still ~3x slower than Qwen3.6; tok/s here includes re-prefill every turn (writeup, 2026-09-19)",
+      "tok_s": 28.7,
+      "easy": "qwen38_8bit_dflash_easy_v1",
+      "hard": "qwen38_8bit_dflash_hard_v1",
       "kind": "local"
     },
     "deepseek-v4-flash-0731": {
