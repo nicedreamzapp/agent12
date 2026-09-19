@@ -76,6 +76,10 @@ fresh conversation per task, one variable moved per comparison.
 - [METHODOLOGY.md](METHODOLOGY.md) — how scoring, judging, and validation work
 - [CONTAMINATION.md](CONTAMINATION.md) — public vs held-out tasks, rotation policy
 
+## Contributors
+
+- [@galashko](https://github.com/galashko) reproduced the Qwen3.6-35B numbers on an M5 Max with a different serving stack ([#1](https://github.com/nicedreamzapp/agent12/issues/1)), found that the judge failed correct code on Python 3.9, and fixed it: runs now record the interpreter and judge validation refuses anything below 3.10 ([#2](https://github.com/nicedreamzapp/agent12/pull/2)).
+
 ## License
 
 MIT.
