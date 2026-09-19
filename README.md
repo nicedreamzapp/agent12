@@ -76,6 +76,10 @@ fresh conversation per task, one variable moved per comparison.
 - [METHODOLOGY.md](METHODOLOGY.md) — how scoring, judging, and validation work
 - [CONTAMINATION.md](CONTAMINATION.md) — public vs held-out tasks, rotation policy
 
+## Report a result or a problem
+
+Ran it on your own hardware, or think a judge got something wrong? Open an [issue](https://github.com/nicedreamzapp/agent12/issues/new) with your chip, RAM, serving stack, model and score. Independent runs are what make the table worth trusting ([#5](https://github.com/nicedreamzapp/agent12/issues/5)).
+
 ## Contributors
 
 - [@galashko](https://github.com/galashko) reproduced the Qwen3.6-35B numbers on an M5 Max with a different serving stack ([#1](https://github.com/nicedreamzapp/agent12/issues/1)), found that the judge failed correct code on Python 3.9, and fixed it: runs now record the interpreter and judge validation refuses anything below 3.10 ([#2](https://github.com/nicedreamzapp/agent12/pull/2)).
