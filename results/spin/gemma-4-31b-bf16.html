@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { margin: 0; overflow: hidden; background: #000; }
+        canvas { width: 100vw; height: 100vh; display: block; }
+    </style>
+</head>
+<body>
+    <canvas id="glCanvas"></canvas>
+    <script>
+        const canvas = document.getElementById('glCanvas');
+        const gl = canvas.getContext('webgl2');
+
+        if (!gl) { alert('WebGL2 not supported'); }
+
+        const vsSource = `#version 300 es
+            in vec3 aPosition;
+            in vec3 aNormal;
+            uniform mat4 uModelViewMatrix;
+            uniform mat4 uProjectionMatrix;
+            out vec3 vNormal;
+            out vec3 vPosition;
+            void main() {
+                vNormal = aNormal;
+                vPosition = aPosition;
+                gl_Position = uProjectionMatrix * uModelViewMatrix * vec4(aPosition, 1.0);
+            }`;
+
+        const fsSource = `#version 300 es
+            precision highp float;
+            in vec3 vNormal;
+            in vec3 vPosition;
+            out vec4 fragColor;
+            void main() {
+                vec3 lightDir = normalize(vec3(1.0, 1.0, 1.0));
+                float diff = max(dot(normalize(vNormal), lightDir), 0.1);
+                vec3 color = vec3(0.2, 0.5, 1.0) * diff;
+                fragColor = vec4(color, 1.0);
+            }`;
+
+        function createShader(gl, type, source) {
+            const shader = gl.createShader(type);
+            gl.shaderSource(shader, source);
+            gl.compileShader(shader);
+            return shader;
+        }
+
+        const program = gl.createProgram();
+        gl.attachShader(program, createShader(gl, gl.VERTEX_SHADER, vsSource));
+        gl.attachShader(program, createShader(gl, gl.FRAGMENT_SHADER, fsSource));
+        gl.linkProgram(program);
+        gl.useProgram(program);
+
+        const positions = [], normals = [];
+        const rings = 32, sectors = 32;
+        for (let r = 0; r <= rings; r++) {
+            const phi = r * Math.PI / rings;
+            for (let s = 0; s <= sectors; s++) {
+                const theta = s * 2 * Math.PI / sectors;
+                const x = Math.sin(phi) * Math.cos(theta);
+                const y = Math.cos(phi);
+                const z = Math.sin(phi) * Math.sin(theta);
+                positions.push(x, y, z);
+                normals.push(x, y, z);
+            }
+        }
+
+        const indices = [];
+        for (let r = 0; r < rings; r++) {
+            for (let s = 0; s < sectors; s++) {
+                const first = (r * (sectors + 1)) + s;
+                const second = first + sectors + 1;
+                indices.push(first, second, first + 1);
+                indices.push(second, second + 1, first + 1);
+            }
+        }
+
+        const posBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
+        const aPos = gl.getAttribLocation(program, 'aPosition');
+        gl.enableVertexAttribArray(aPos);
+        gl.vertexAttribPointer(aPos, 3, gl.FLOAT, false, 0, 0);
+
+        const normBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, normBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(normals), gl.STATIC_DRAW);
+        const aNorm = gl.getAttribLocation(program, 'aNormal');
+        gl.enableVertexAttribArray(aNorm);
+        gl.vertexAttribPointer(aNorm, 3, gl.FLOAT, false, 0, 0);
+
+        const idxBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, idxBuffer);
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
+
+        const uMV = gl.getUniformLocation(program, 'uModelViewMatrix');
+        const uP = gl.getUniformLocation(program, 'uProjectionMatrix');
+
+        let rotX = 0, rotY = 0, velX = 0.01, velY = 0.01;
+        let isDragging = false, lastMouseX = 0, lastMouseY = 0;
+
+        window.addEventListener('mousedown', e => { isDragging = true; lastMouseX = e.clientX; lastMouseY = e.clientY; });
+        window.addEventListener('mousemove', e => {
+            if (!isDragging) return;
+            velY = (e.clientX - lastMouseX) * 0.01;
+            velX = (e.clientY - lastMouseY) * 0.01;
+            lastMouseX = e.clientX; lastMouseY = e.clientY;
+        });
+        window.addEventListener('mouseup', () => isDragging = false);
+
+        function mat4Perspective(fovy, aspect, near, far) {
+            const f = 1.0 / Math.tan(fovy / 2), nf = 1 / (near - far);
+            return [f / aspect, 0, 0, 0, 0, f, 0, 0, 0, 0, (far + near) * nf, -1, 0, 0, (2 * far * near) * nf, 0];
+        }
+
+        function render() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            gl.viewport(0, 0, canvas.width, canvas.height);
+            gl.clearColor(0, 0, 0, 1);
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+            gl.enable(gl.DEPTH_TEST);
+
+            rotX += velX; rotY += velY;
+            if (!isDragging) { velX += (0.01 - velX) * 0.01; velY += (0.01 - velY) * 0.01; }
+
+            const aspect = canvas.width / canvas.height;
+            const proj = mat4Perspective(Math.PI / 4, aspect, 0.1, 100);
+            
+            const cx = Math.cos(rotX), sx = Math.sin(rotX);
+            const cy = Math.cos(rotY), sy = Math.sin(rotY);
+            
+            const mv = [
+                cy, sx*sy, cx*sy, 0,
+                0, cx, -sx, 0,
+                -sy, sx*cy, cx*cy, 0,
+                0, 0, -4, 1
+            ];
+
+            gl.uniformMatrix4fv(uP, false, proj);
+            gl.uniformMatrix4fv(uMV, false, mv);
+            gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
+            requestAnimationFrame(render);
+        }
+        render();
+    </script>
+</body>
+</html>

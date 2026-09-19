@@ -1,0 +1,19 @@
+{
+ "label": "gemma-4-31b-bf16",
+ "loaded": true,
+ "errors": [],
+ "canvas": true,
+ "coverage": 0.2993,
+ "play_change_median": 0.00359,
+ "moving_frac": 0.8,
+ "paddle_left_x": 62,
+ "paddle_right_x": 898,
+ "field_w": 960,
+ "paddle_travel": 836,
+ "field_change": 0.1107,
+ "drew": true,
+ "paddle_follows": true,
+ "plays": true,
+ "clean": true,
+ "pass": true
+}

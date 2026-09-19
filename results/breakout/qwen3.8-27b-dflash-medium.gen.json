@@ -1,0 +1,14 @@
+{
+ "task": "breakout",
+ "label": "qwen3.8-27b-dflash-medium",
+ "gen_seconds": 145.5,
+ "completion_tokens": 6467,
+ "tok_s": 44.4,
+ "max_tokens": 32768,
+ "chars": 16239,
+ "complete": true,
+ "model": "lmstudio-community/Qwen3.8-27B-MLX-8bit",
+ "drafter": "incoai/Qwen3.8-27B-DFlash2",
+ "rounds": 1247,
+ "reasoning_effort": "medium"
+}

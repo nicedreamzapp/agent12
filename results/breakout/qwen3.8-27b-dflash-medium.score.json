@@ -1,0 +1,19 @@
+{
+ "label": "qwen3.8-27b-dflash-medium",
+ "loaded": true,
+ "errors": [],
+ "canvas": true,
+ "coverage": 0.3121,
+ "play_change_median": 0.04382,
+ "moving_frac": 1.0,
+ "paddle_left_x": 73,
+ "paddle_right_x": 887,
+ "field_w": 960,
+ "paddle_travel": 814,
+ "field_change": 0.0948,
+ "drew": true,
+ "paddle_follows": true,
+ "plays": true,
+ "clean": true,
+ "pass": true
+}

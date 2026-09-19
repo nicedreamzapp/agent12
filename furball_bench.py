@@ -356,11 +356,10 @@ def score(html_path, label=None, port=9340, keep=True):
             shutil.rmtree(shots, ignore_errors=True)
 
     # verdict: drew something furry, ran, and responded to the stroke
-    res["drew"] = res.get("coverage", 0) > 0.06
-    res["furry"] = res.get("detail", 0) > 6.0
-    res["responds"] = (res.get("pet_band", 0) > 0.02 and res.get("pet_ratio", 0) > 1.6)
+    # the pass rule depends on the task (see verdict() above); springs_back is
+    # recorded for the fur ball but is not a pass condition
     res["springs_back"] = res.get("relax_change", 0) > 0.005
-    res["pass"] = all([res["loaded"], res["drew"], res["furry"], res["responds"]])
+    res = verdict(res)
     json.dump(res, open(os.path.join(OUT_DIR, label + ".score.json"), "w"), indent=1)
     print(json.dumps(res, indent=1), flush=True)
     return res

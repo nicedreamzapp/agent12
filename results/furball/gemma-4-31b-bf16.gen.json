@@ -1,0 +1,11 @@
+{
+ "task": "furball",
+ "label": "gemma-4-31b-bf16",
+ "gen_seconds": 435.7,
+ "completion_tokens": 3582,
+ "tok_s": 8.2,
+ "max_tokens": 32768,
+ "chars": 12022,
+ "complete": true,
+ "model": "gemma-4-31b-it-abliterated-VL-mlx-bf16"
+}

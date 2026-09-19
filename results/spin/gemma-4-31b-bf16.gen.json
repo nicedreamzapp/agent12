@@ -1,0 +1,11 @@
+{
+ "task": "spin",
+ "label": "gemma-4-31b-bf16",
+ "gen_seconds": 218.5,
+ "completion_tokens": 1792,
+ "tok_s": 8.2,
+ "max_tokens": 32768,
+ "chars": 5799,
+ "complete": true,
+ "model": "gemma-4-31b-it-abliterated-VL-mlx-bf16"
+}

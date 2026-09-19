@@ -1,0 +1,14 @@
+#version 300 es
+precision highp float;
+layout(location=0) in vec3 aPos;
+uniform mat4 uModel;
+uniform mat4 uView;
+uniform mat4 uProj;
+out vec3 vNormal;
+out vec3 vWorld;
+void main(){
+  vec4 w = uModel * vec4(aPos,1.0);
+  vWorld = w.xyz;
+  vNormal = mat3(uModel) * aPos; // sphere normal = position, model is pure rotation so no need to normalize
+  gl_Position = uProj * uView * w;
+}

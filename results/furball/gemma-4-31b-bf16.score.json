@@ -1,0 +1,26 @@
+{
+ "label": "gemma-4-31b-bf16",
+ "errors": [
+  "Uncaught TypeError: Failed to execute 'attachShader' on 'WebGL2RenderingContext': parameter 2 is not of type 'WebGLShader'. @file:///Users/dtribe/bench-llm/agent12/results/furball/gemma-4-31b.html:122"
+ ],
+ "loaded": true,
+ "webgl2": true,
+ "fps": 61.2,
+ "coverage": 0.0,
+ "detail": 0.0,
+ "shading": 0.0,
+ "clipped": true,
+ "px": 810000,
+ "idle_change": 0.0,
+ "pet_band": 0.0,
+ "pet_ctrl": 0.0,
+ "pet_ratio": 0.0,
+ "relax_change": 0.0,
+ "pet_global": 0.0,
+ "pet_change": 0.0,
+ "springs_back": false,
+ "drew": false,
+ "textured": false,
+ "responds": false,
+ "pass": false
+}

@@ -1,0 +1,1974 @@
+The user is asking for a single self-contained HTML file that renders a rotating 3D ball with WebGL2. Requirements:
+
+1. One file, no libraries, no external assets.
+2. A sphere made of triangles, roughly 2,000 of them, centered.
+3. A single directional light, shading that shows curvature.
+4. Slowly rotates on its own, requestAnimationFrame.
+5. Mouse drag makes it spin faster and changes the direction of rotation.
+6. Canvas fills the window, dark background.
+
+Output only the contents of the HTML file. No explanation, no markdown fences.
+
+I want to make this a crafted, polished page — richer, with a bit of atmosphere, micro-interactions, strong typographic contrast. But the core is a WebGL2 canvas. I can add a subtle HUD overlay: title, live readout of angular velocity, hints. That adds a bit of life without violating the requirements. The canvas fills the window, dark background. I can add a subtle vignette, a faint grid or starfield? Careful — "no external assets" is fine, everything inline. I can add a subtle CSS radial gradient behind/around, but the canvas covers everything. I can render a subtle background inside WebGL (e.g., a faint gradient clear color, or a fullscreen quad with a radial glow). That adds atmosphere.
+
+Let me design:
+
+- WebGL2 context.
+- Sphere geometry: latitude/longitude segments. Triangle count ≈ 2 * lat * lon (roughly, with poles). For ~2000 triangles: lat=20, lon=50 → 2*20*50 = 2000 triangles (with pole caps handled as triangles). Actually, standard UV sphere: for each lat band (lat bands), lon quads → 2 triangles each, except the top and bottom bands which are triangles. Total triangles = lat * lon * 2 - 2*lon (poles) = (lat-1)*lon*2 + 2*lon = lat*lon*2. Let me compute: bands 0..lat-1. Top band: lon triangles. Bottom band: lon triangles. Middle bands (lat-2): 2*lon triangles each. Total = 2*lon + (lat-2)*2*lon = 2*lon*lat. So lat*lon*2 triangles. For 2000: lat=20, lon=50 → 2000.
+
+- Vertex attributes: position (vec3), normal (vec3). For a sphere, normal = normalized position.
+
+- Shading: directional light. In the vertex shader, transform normal by model matrix (rotation), pass to fragment. In fragment, compute NdotL with a light direction in view/world space. Add a small ambient so the dark side isn't pitch black — "dark on the side facing away" — a small ambient is fine, maybe 0.08. Add a subtle rim/fresnel for polish? The requirement says "shade with a single directional light so curvature is visible: bright where it faces the light, dark where it faces away." A fresnel rim is an addition, but it's still a single directional light. I think a subtle rim is fine and adds craft. But keep the primary shading as Lambert. Maybe add a slight specular? "Single directional light" — specular from the same light is still a single light. A small specular highlight makes it look nicer. I'll add a gentle Blinn-Phong specular from the same directional light. That's still a single directional light.
+
+- Rotation: maintain angular velocity vector (axis * speed). Base slow spin: e.g., rotate around a tilted axis at ~0.3 rad/s. Drag: pointer events; compute delta x, delta y; add to angular velocity: dragging right → spin around Y axis; dragging up → spin around X axis. "Makes it spin faster and changes the direction of rotation" — so drag adds to velocity, and velocity persists (with damping back to base spin?). Let me implement:
+
+  - `spin` = {x, y} angular velocity (rad/s) around world X and Y axes.
+  - Base: y = 0.35, x = 0.12 (slow, tilted).
+  - On drag: spin.y += dx * k; spin.x += dy * k. Also track pointer velocity for a fling feel.
+  - Damping: each frame, spin decays toward base: spin += (base - spin) * (1 - exp(-dt * decayRate))? That way after a drag it returns to slow spin. Or decay the excess. Let me do: excess = spin - base; excess *= exp(-dt * 0.6); spin = base + excess. That way it always returns to the base slow spin. Direction changes persist until decayed. Good.
+
+  - Rotation matrix: build from accumulated angles? Better: maintain a rotation matrix and multiply by incremental rotations around X and Y each frame: R = Rx(spin.x*dt) * Ry(spin.y*dt) * R. That gives natural tumbling.
+
+- Camera: perspective, sphere at origin, camera at z=3, sphere radius 1. Centered in view.
+
+- Background: clear color dark, e.g., #05070c. Add a subtle radial glow behind the ball: render a fullscreen quad first with depth write off, with a radial gradient (dark blue center glow). That adds atmosphere. Or CSS: canvas is opaque... I can make the canvas alpha and put a CSS gradient behind. Simpler: render a background quad in WebGL. Let me do a fullscreen triangle with a fragment shader that computes a radial gradient + subtle vignette + faint noise? Keep it cheap. Maybe a subtle starfield? Might be overkill; a soft radial glow + vignette is elegant. Maybe add a very subtle animated drift? Keep it static-ish, or a very slow hue shift? Keep it tasteful: deep navy glow behind the ball, vignette at edges.
+
+- HUD: top-left title in a distinctive display face — but no external fonts allowed (no CDN). Use system font stack: display could be a strong stack like "Futura, 'Century Gothic', ..." or a monospace for data. Pair a distinctive display face with a readable body: use system-ui for body, and for display use a stack like `"Avenir Next", "Futura", "Segoe UI"` with heavy weight and tight tracking, or use monospace for the readout. Since no external fonts, I'll craft with weight/size contrast: big bold title, small caps labels, monospace numeric readout (ui-monospace, SFMono).
+
+- Live readout: angular velocity (deg/s), axis, triangle count (2000), FPS. Update via rAF, throttle text updates to ~10Hz to avoid layout thrash.
+
+- Micro-interactions: cursor changes to grabbing on drag; hint text "drag to spin" fades after first drag; subtle glow on HUD. Also a small "impulse" flash on the ball? Maybe the rim intensity pulses with speed — that ties the visuals to input: rim light intensity scales with |spin|. Nice: the faster it spins, the more the rim glows. That's a nice touch.
+
+- Also handle devicePixelRatio, resize.
+
+- Pointer events: pointerdown/move/up with setPointerCapture. Touch works via pointer events too.
+
+- Prevent page scroll: touch-action: none on canvas.
+
+Let me write the shaders.
+
+Vertex shader (WebGL2, #version 300 es):
+
+```
+#version 300 es
+precision highp float;
+layout(location=0) in vec3 aPos;
+uniform mat4 uModel;
+uniform mat4 uView;
+uniform mat4 uProj;
+out vec3 vNormal;
+out vec3 vWorld;
+void main(){
+  vec4 w = uModel * vec4(aPos,1.0);
+  vWorld = w.xyz;
+  vNormal = mat3(uModel) * aPos; // sphere normal = position, model is pure rotation so no need to normalize
+  gl_Position = uProj * uView * w;
+}
+```
+
+Fragment:
+
+```
+#version 300 es
+precision highp float;
+in vec3 vNormal;
+in vec3 vWorld;
+uniform vec3 uLightDir; // direction toward light (normalized)
+uniform vec3 uCamPos;
+uniform float uRim;
+out vec4 fragColor;
+void main(){
+  vec3 N = normalize(vNormal);
+  vec3 L = normalize(uLightDir);
+  vec3 V = normalize(uCamPos - vWorld);
+  float ndl = dot(N, L);
+  float diff = clamp(ndl, 0.0, 1.0);
+  // soft wrap for a bit of form on the dark side
+  float wrap = clamp((ndl + 0.15) / 1.15, 0.0, 1.0);
+  vec3 H = normalize(L + V);
+  float spec = pow(clamp(dot(N,H),0.0,1.0), 48.0);
+  float fres = pow(1.0 - clamp(dot(N,V),0.0,1.0), 3.0);
+  vec3 base = vec3(0.98, 0.94, 0.88); // warm off-white? or a color
+  ...
+}
+```
+
+Hmm, color: I want a distinctive palette. Dark background (deep blue-black). Ball: warm amber/coral? Or a cool cyan? Let me pick: background deep ink blue (#060a12), glow behind ball a faint teal-blue, ball base color a warm sand/amber (like a lit planet), light warm white, rim a cool cyan. That contrast (warm ball, cool rim, dark blue field) is striking.
+
+Base color: vec3(0.93, 0.72, 0.42)? Maybe a bit more saturated: (0.95, 0.62, 0.30) amber. Diffuse * lightColor (1.0, 0.96, 0.9). Ambient: 0.06 * base * cool tint (0.35,0.45,0.6) so the dark side reads as deep blue — nice. Specular: white * 0.6. Rim: cyan (0.3, 0.8, 1.0) * fres * uRim.
+
+uRim = base 0.25 + speed factor.
+
+Also add a subtle two-tone: mix base color by normal.y? Keep it simple.
+
+Background quad shader:
+
+```
+#version 300 es
+precision highp float;
+in vec2 vUv;
+uniform vec2 uRes;
+uniform float uTime;
+out vec4 fragColor;
+void main(){
+  vec2 p = (vUv*2.0-1.0);
+  p.x *= uRes.x/uRes.y;
+  float d = length(p);
+  vec3 col = mix(vec3(0.055,0.075,0.11), vec3(0.012,0.016,0.028), smoothstep(0.0,1.4,d));
+  // vignette
+  col *= 1.0 - 0.35*smoothstep(0.6,1.6,d);
+  // faint stars? maybe skip
+  fragColor = vec4(col,1.0);
+}
+```
+
+Maybe add a very subtle slow drift: a slight time-based hue shift on the glow, or a faint noise dither to avoid banding. Banding on a dark gradient is a real concern — add a small dither: `col += (fract(sin(dot(gl_FragCoord.xy, vec2(12.9898,78.233)))*43758.5453)-0.5)/255.0;` Good.
+
+Also faint stars: hash-based static stars could be nice but might be noisy. Maybe a very subtle starfield: use a grid hash, a few bright pixels. Let me add a sparse starfield:
+
+```
+vec2 g = floor(p*40.0);
+float h = fract(sin(dot(g, vec2(127.1,311.7)))*43758.5453);
+float star = step(0.995, h) * ... 
+```
+
+That gives blocky stars per cell; better: compute a star position within the cell. Might be overkill. Alternative: skip stars, keep the glow + vignette + dither. The ball is the star. Maybe add a faint horizontal "horizon" line? No. Keep it clean: radial glow, vignette, dither. Maybe a very subtle animated shimmer on the glow (breathing) — a slow sin on the glow intensity. Subtle life.
+
+Actually, a sparse starfield adds atmosphere cheaply. Let me do it properly:
+
+```
+vec2 cell = floor(p * 24.0);
+vec2 f = fract(p * 24.0) - 0.5;
+float h = hash(cell);
+if (h > 0.92) {
+  vec2 off = (vec2(hash(cell+1.3), hash(cell+2.7)) - 0.5) * 0.8;
+  float sd = length(f - off);
+  float s = smoothstep(0.08, 0.0, sd) * (h - 0.92) / 0.08;
+  col += vec3(0.7,0.8,1.0) * s * 0.5;
+}
+```
+
+Twinkle: modulate by sin(uTime*speed + h*100). Subtle. That's nice. Keep star brightness low (0.15–0.4).
+
+HUD design:
+- Top-left: small overline "WEBGL2 · REALTIME" in monospace, letter-spaced; below it a big title "SPIN" or "Orbital"? Something distinctive. Maybe "KINETIC ORB" or just "SPHERE / 2000 TRIS". Let me do: overline "WEBGL2 — SINGLE FILE", title "Kinetic Sphere" in a heavy display, sub "2,000 triangles · one directional light".
+- Bottom-left: live telemetry in monospace: ω (deg/s), axis, fps, drag state.
+- Bottom-right: hint "drag to fling — it settles back to a slow spin" that fades after first interaction.
+- Top-right: maybe a small "L" light direction indicator? Could draw a small arrow showing the light. Cute but extra. Maybe a small compass showing the spin axis projected? That's a nice live element: a small canvas or CSS arrow that rotates with the spin axis. I can compute the spin axis (normalized spin vector in world) and project it to screen, and rotate a small CSS arrow. That's a nice live detail. Implementation: axis = normalize(spin) (world). Project: apply view*proj to axis direction from origin → screen point; angle = atan2. Update a div's transform rotate. Also scale opacity by speed. Let me include a small "axis" widget: a circle with an arrow, labeled "spin axis".
+
+Keep DOM updates cheap: update text at 8–10 Hz, transform every frame is fine.
+
+Fonts: display: `"Avenir Next", Avenir, Futura, "Segoe UI", system-ui` weight 800, tight letter-spacing, maybe uppercase. Body/labels: `ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace` for telemetry; body text: system-ui. Pairing: heavy geometric display + monospace data. Good.
+
+Colors: text #cfd8e3, accent cyan #6fe3ff, warm #ffb35c.
+
+Layout: HUD is pointer-events none, except maybe nothing interactive. Canvas is full window, position fixed inset 0.
+
+Cursor: grab / grabbing.
+
+Now the JS structure:
+
+```js
+const canvas = document.getElementById('gl');
+const gl = canvas.getContext('webgl2', {antialias:true});
+if(!gl){ show fallback message }
+```
+
+Fallback: if no WebGL2, show a message div.
+
+Shaders compiled, programs: bgProgram, ballProgram.
+
+Sphere generation:
+
+```js
+const LAT = 20, LON = 50; // 2000 triangles
+positions: for i in 0..LAT: theta = i/LAT * PI; for j in 0..LON: phi = j/LON * 2PI;
+x = sin(theta)cos(phi), y = cos(theta), z = sin(theta)sin(phi)
+indices: for i in 0..LAT-1, j in 0..LON-1:
+ a = i*LON + j, b = i*LON + (j+1)%LON, c = (i+1)*LON + j, d = (i+1)*LON + (j+1)%LON;
+ triangles (a,c,b),(b,c,d) — winding for outward normals.
+```
+
+Check winding: theta from 0 (north pole, y=1) to PI (south). phi increasing. Outward-facing CCW with frontFace default CCW and cullFace BACK. Let me verify: at equator theta=PI/2, point at phi=0: (1,0,0). Neighbor j+1: phi increases → (cos, 0, sin) so +z. i+1: theta increases → y decreases.
+
+Triangle (a, c, b): a=(1,0,0), c=(cos dθ, -sin dθ, 0)≈(1, -dθ, 0), b=(1, 0, dφ). Edge1 = c-a ≈ (0,-dθ,0), edge2 = b-a ≈ (0,0,dφ). cross(edge1, edge2) = (-dθ*dφ, 0, 0)?? cross((0,-dθ,0),(0,0,dφ)) = (-dθ*dφ - 0, 0 - 0, 0 - 0) = (-dθ dφ, 0, 0). That points -x, inward. So (a,c,b) is clockwise from outside → culled. So use (a, b, c) and (b, d, c)? Let me recompute (a,b,c): edge1 = b-a = (0,0,dφ), edge2 = c-a = (0,-dθ,0). cross = (0*0 - dφ*(-dθ), dφ*0 - 0*0, 0*(-dθ) - 0*0) = (dφ dθ, 0, 0) → +x outward. Good. Second triangle (b, d, c): b=(1,0,dφ), d=(cos dθ, -sin dθ, dφ)≈(1,-dθ,dφ), c=(1,-dθ,0). edge1 = d-b = (0,-dθ,0), edge2 = c-b = (0,-dθ,-dφ). cross = ((-dθ)(-dφ) - 0, 0 - 0, 0 - 0) = (dθ dφ, 0, 0) → +x. Good. So indices: (a,b,c),(b,d,c).
+
+Enable cull face BACK, depth test.
+
+Matrices: write minimal mat4 helpers: perspective, lookAt (or just translate), multiply, rotationX/Y.
+
+View: camera at (0,0,3.2), looking at origin → view = translate(0,0,-3.2). Simple.
+
+Model: rotation matrix R (3x3 stored in mat4). Each frame:
+```
+const rx = rotX(spin.x*dt), ry = rotY(spin.y*dt);
+R = mul3(rx, mul3(ry, R));
+```
+Keep R as a 9-element array or 16. Let me write small 3x3 helpers and pack into mat4 for the uniform.
+
+Actually simpler: keep R as a Float32Array(16) mat4, and multiply by small mat4 rotations. Write mat4 functions: identity, multiply, rotX, rotY, perspective, translate.
+
+Spin dynamics:
+```
+const base = {x: 0.18, y: 0.42};
+let spin = {x: base.x, y: base.y};
+let excess = {x:0, y:0};
+onPointerMove while dragging:
+  const dx = e.clientX - last.x, dy = e.clientY - last.y;
+  excess.y += dx * 0.004; // rad/s per px
+  excess.x += dy * 0.004;
+  clamp excess magnitude to say 12 rad/s.
+each frame:
+  const k = Math.exp(-dt * 0.55);
+  excess.x *= k; excess.y *= k;
+  spin.x = base.x + excess.x; spin.y = base.y + excess.y;
+```
+
+Hmm, "dragging the mouse makes it spin faster and changes the direction of rotation" — with this, dragging right adds positive y spin (faster), dragging left can make it negative (reverse). Good. Also, should the ball follow the drag directly (like a trackball) or just add velocity? "Makes it spin faster and changes the direction of rotation" suggests velocity-based. But direct manipulation feels better: while dragging, the ball rotates in proportion to the drag (1:1), and on release the velocity is flung. Let me combine: while dragging, apply rotation directly from pointer delta (immediate response), and track velocity for the fling. That's the best feel.
+
+Implementation:
+- On pointermove while dragging: dx, dy in px. Convert to radians: d = dx * 0.005. Apply immediate rotation: R = Rx(dy*0.005) * Ry(dx*0.005) * R. Also compute instantaneous velocity: vel = (dx, dy)/dtMove → store smoothed: velY = lerp(velY, dx*0.005/dt, 0.5).
+- On pointerup: excess = vel (clamped).
+- While dragging, don't apply base spin? Or keep it — it's fine, base is slow. Actually, while dragging, the direct manipulation dominates; base spin continues adding a little. That's fine.
+
+Simpler and more robust: keep the velocity model: on move, set target spin from pointer velocity, and also apply direct rotation. Let me do:
+
+```
+let dragging=false, lastX, lastY, lastT;
+let fling = {x:0,y:0};
+pointerdown: dragging=true; lastX=..., lastT=performance.now(); fling={0,0}; canvas.setPointerCapture
+pointermove: if(!dragging) return;
+  const now = performance.now(); const dtm = Math.max((now-lastT)/1000, 1e-3);
+  const dx = e.clientX-lastX, dy=e.clientY-lastY;
+  const rx = dy*0.0045, ry = dx*0.0045;
+  applyRotation(rx, ry); // immediate
+  // smoothed velocity
+  const vx = (dy/dtm)*0.0045, vy=(dx/dtm)*0.0045;
+  fling.x = fling.x*0.6 + vx*0.4; fling.y = fling.y*0.6 + vy*0.4;
+  lastX=..., lastT=now;
+pointerup/cancel: dragging=false; excess.x = clamp(fling.x, -14,14); excess.y = clamp(fling.y,-14,14);
+```
+
+And each frame: apply base+excess rotation, decay excess.
+
+applyRotation(rx, ry): R = mul(rotX(rx), mul(rotY(ry), R)).
+
+Speed for HUD: |spin| in deg/s = (|base+excess|) * 180/PI. Also show "state: idle / dragging / flinging".
+
+Rim intensity: uRim = 0.22 + min(speed/6, 1) * 0.5.
+
+Axis widget: axis = normalize(spin vector (x, y, 0)) — since spin is only around X and Y, the axis is in the XY plane. Project to screen: view is identity rotation (camera on +Z), so screen angle = atan2(axisY, axisX) → CSS rotate. Arrow points in the direction of the axis. Update transform each frame: `rotate(${angle}rad)`. Also scale opacity by speed. Nice.
+
+FPS: exponential moving average of 1/dt, update text at 4Hz.
+
+Resize: canvas.width = innerWidth * dpr (dpr capped at 2), viewport.
+
+Time: uTime for background shimmer.
+
+Also add a subtle "breathing" glow behind the ball in the background shader: glow intensity 0.9 + 0.1*sin(t*0.4).
+
+Edge cases: pointer events on window vs canvas — canvas is fullscreen so canvas is fine. Add `touch-action:none`.
+
+Prevent context menu? Not needed.
+
+Accessibility: aria-hidden on HUD? Fine.
+
+Now let me write the code carefully.
+
+Matrix helpers (column-major for WebGL):
+
+```js
+function mat4Identity(){ return new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]); }
+function mat4Mul(a,b){ // a*b
+  const o = new Float32Array(16);
+  for(let c=0;c<4;c++)for(let r=0;r<4;r++){
+    o[c*4+r] = a[r]*b[c*4] + a[4+r]*b[c*4+1] + a[8+r]*b[c*4+2] + a[12+r]*b[c*4+3];
+  }
+  return o;
+}
+function mat4Perspective(fovy, aspect, near, far){
+  const f = 1/Math.tan(fovy/2), o = new Float32Array(16);
+  o[0]=f/aspect; o[5]=f; o[10]=(far+near)/(near-far); o[11]=-1; o[14]=2*far*near/(near-far);
+  return o;
+}
+function mat4Translate(x,y,z){ const o=mat4Identity(); o[12]=x;o[13]=y;o[14]=z; return o; }
+function mat4RotX(a){ const c=Math.cos(a),s=Math.sin(a),o=mat4Identity(); o[5]=c;o[6]=s;o[9]=-s;o[10]=c; return o; }
+function mat4RotY(a){ const c=Math.cos(a),s=Math.sin(a),o=mat4Identity(); o[0]=c;o[2]=-s;o[8]=s;o[10]=c; return o; }
+```
+
+Verify rotX: rotation around X: y' = c*y - s*z, z' = s*y + c*z. Column-major matrix: column 1 = (0,c,s,0), column 2 = (0,-s,c,0). So o[5]=c, o[6]=s, o[9]=-s, o[10]=c. ✓.
+
+rotY: x' = c*x + s*z, z' = -s*x + c*z. Column 0 = (c,0,-s,0) → o[0]=c, o[2]=-s. Column 2 = (s,0,c,0) → o[8]=s, o[10]=c. ✓.
+
+Model update: `model = mat4Mul(mat4RotX(rx), mat4Mul(mat4RotY(ry), model));` — allocating arrays each frame; fine, or reuse. For cleanliness, reuse buffers: pre-allocate temp arrays. Actually, allocation per frame is trivial (small arrays, GC handles it), but let me write an in-place mul to be tidy. Let me write `mulInto(out, a, b)`.
+
+Light direction: fixed in world space, e.g., normalize(0.55, 0.65, 0.52) — from upper-right-front. Since the model rotates and the light is fixed, the shading shows the rotation.
+
+Camera position for specular: (0,0,3.2).
+
+Background program: fullscreen triangle:
+
+```js
+const bgVao = gl.createVertexArray();
+gl.bindVertexArray(bgVao);
+const bgBuf = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, bgBuf);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 3,-1, -1,3]), gl.STATIC_DRAW);
+gl.enableVertexAttribArray(0);
+gl.vertexAttribPointer(0,2,gl.FLOAT,false,0,0);
+```
+
+BG vertex shader:
+```
+#version 300 es
+layout(location=0) in vec2 aPos;
+out vec2 vUv;
+void main(){ vUv = aPos*0.5+0.5; gl_Position = vec4(aPos,0.0,1.0); }
+```
+
+BG fragment: as designed, with stars + dither + breathing glow.
+
+```
+#version 300 es
+precision highp float;
+in vec2 vUv;
+uniform vec2 uRes;
+uniform float uTime;
+uniform float uGlow; // speed-based extra glow
+out vec4 fragColor;
+float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7)))*43758.5453); }
+void main(){
+  vec2 p = vUv*2.0-1.0;
+  p.x *= uRes.x/uRes.y;
+  float d = length(p);
+  float breathe = 0.92 + 0.08*sin(uTime*0.5);
+  vec3 col = vec3(0.016,0.020,0.033);
+  col += vec3(0.05,0.085,0.13) * exp(-d*d*2.2) * breathe;
+  col += vec3(0.02,0.05,0.07) * exp(-d*1.1) * uGlow;
+  // stars
+  vec2 cell = floor(p*26.0);
+  float h = hash(cell);
+  if(h > 0.93){
+    vec2 sp = (vec2(hash(cell+7.31), hash(cell+3.7)) - 0.5)*0.7;
+    float sd = length(fract(p*26.0)-0.5 - sp);
+    float tw = 0.6 + 0.4*sin(uTime*(0.5+h) + h*40.0);
+    col += vec3(0.55,0.7,0.95) * smoothstep(0.06,0.0,sd) * (h-0.93)/0.07 * 0.35 * tw;
+  }
+  // vignette
+  col *= 1.0 - 0.45*smoothstep(0.55,1.75,d);
+  // dither
+  col += (hash(gl_FragCoord.xy + fract(uTime)) - 0.5) * (1.5/255.0);
+  fragColor = vec4(col,1.0);
+}
+```
+
+Wait: stars near the center will be behind the ball — fine, the ball overwrites with depth.
+
+Ball fragment shader:
+
+```
+#version 300 es
+precision highp float;
+in vec3 vNormal;
+in vec3 vWorld;
+uniform vec3 uLightDir;
+uniform vec3 uCamPos;
+uniform float uRim;
+out vec4 fragColor;
+void main(){
+  vec3 N = normalize(vNormal);
+  vec3 L = normalize(uLightDir);
+  vec3 V = normalize(uCamPos - vWorld);
+  float ndl = dot(N,L);
+  float diff = clamp(ndl, 0.0, 1.0);
+  float wrap = clamp((ndl + 0.18)/1.18, 0.0, 1.0);
+  vec3 H = normalize(L+V);
+  float spec = pow(clamp(dot(N,H),0.0,1.0), 60.0);
+  float fres = pow(1.0 - clamp(dot(N,V),0.0,1.0), 3.0);
+  vec3 base = vec3(0.94, 0.66, 0.36);
+  vec3 lightCol = vec3(1.0, 0.97, 0.92);
+  vec3 amb = vec3(0.10, 0.14, 0.22);
+  vec3 col = base * (amb + lightCol * (0.15 + 0.85*diff) * wrap);
+```
+
+Hmm, let me simplify: col = base * (ambient + light * diff). Ambient small: vec3(0.05,0.07,0.11). Then add a wrap term for a soft form: base * light * wrap * 0.25? Let me do:
+
+```
+vec3 col = base * (vec3(0.045,0.06,0.10) + lightCol * diff * 1.05);
+col += base * lightCol * wrap * 0.18; // soft wrap fill
+col += vec3(1.0,0.98,0.95) * spec * 0.55;
+col += vec3(0.35,0.75,1.0) * fres * uRim;
+```
+
+uRim default ~0.25, up to ~0.7 at high speed.
+
+Maybe tone-map slightly: col = col / (1.0 + col*0.15)? Or just clamp. Add a gentle filmic-ish: `col = 1.0 - exp(-col * 1.4);` That's a nice soft rolloff. Then gamma? Colors are already in "display" space; the exp curve darkens. Let me use `col = pow(col, vec3(0.95))`? Keep it simple: `col = 1.0 - exp(-col*1.6);` gives a nice rolloff for specular. Let me test in my head: diff=1, base≈(0.94,0.66,0.36)*1.05 ≈ (0.99,0.69,0.38) + ambient → ~ (1.0,0.72,0.42). After 1-exp(-1.6*c): r: 1-exp(-1.6)=0.798, g: 1-exp(-1.15)=0.684, b: 1-exp(-0.67)=0.488. Warm amber, good. Dark side: ambient (0.045,0.06,0.10)*base ≈ (0.042,0.04,0.036) → after curve ≈ (0.065,0.062,0.057) — dark but visible, slightly cool. Good.
+
+Specular: 0.55 * (1,0.98,0.95) → after curve ~0.58. Nice highlight.
+
+Rim: cyan * fres * 0.25 → subtle edge glow.
+
+Now the HUD HTML:
+
+```html
+<div class="hud">
+  <header class="hud-top">
+    <div class="brand">
+      <span class="overline">WebGL2 · single file · no libraries</span>
+      <h1>Kinetic&nbsp;Sphere</h1>
+      <p class="sub">2,000 triangles · one directional light · Lambert + rim</p>
+    </div>
+    <div class="axis-widget" id="axisWidget" title="spin axis">
+      <div class="axis-arrow" id="axisArrow"></div>
+      <span class="axis-label">spin axis</span>
+    </div>
+  </header>
+  <footer class="hud-bottom">
+    <div class="telemetry mono">
+      <div class="row"><span class="k">ω</span><span class="v" id="tSpeed">—</span></div>
+      <div class="row"><span class="k">state</span><span class="v" id="tState">idle</span></div>
+      <div class="row"><span class="k">tris</span><span class="v">2000</span></div>
+      <div class="row"><span class="k">fps</span><span class="v" id="tFps">—</span></div>
+    </div>
+    <div class="hint mono" id="hint">drag to fling — it settles back to a slow spin</div>
+  </footer>
+</div>
+```
+
+CSS: hud is fixed inset 0, pointer-events none, padding clamp. Display font stack: `"Avenir Next", Avenir, Futura, "Century Gothic", "Segoe UI", system-ui, sans-serif` weight 800, letter-spacing -0.02em, size clamp(28px, 5vw, 56px). Overline: monospace, 10-11px, letter-spacing 0.22em, uppercase, cyan color. Sub: system-ui 13px, muted.
+
+Telemetry: monospace 11-12px, rows with k (muted, letter-spaced) and v (bright). Maybe a left border accent.
+
+Axis widget: 54px circle, 1px border rgba, arrow: a 2px line with a dot, rotated. Arrow element: width 30px height 2px background gradient, transform-origin center, plus a small dot at the tip? Use a pseudo-element. Keep it simple: a div with a line and a triangle tip via border. Or just a line with a dot at the end:
+
+```css
+.axis-arrow{ position:absolute; left:50%; top:50%; width:34px; height:2px; margin:-1px 0 0 -17px; background:linear-gradient(90deg, transparent, #6fe3ff); transform-origin:center; }
+.axis-arrow::after{ content:""; position:absolute; right:-2px; top:-3px; width:8px; height:8px; border-radius:50%; background:#6fe3ff; box-shadow:0 0 8px #6fe3ff; }
+```
+
+Rotate the whole widget's inner container.
+
+Hint: bottom-right, monospace, muted; after first pointerdown, add a class that fades it out (opacity 0, transition 1s).
+
+Cursor: canvas { cursor: grab } body.dragging canvas { cursor: grabbing }.
+
+Also a subtle text-shadow/glow on the title? Slight.
+
+Media query for small screens: hide the axis widget? Keep it, shrink.
+
+Now the JS main loop:
+
+```js
+let last = performance.now();
+function frame(now){
+  const dt = Math.min((now-last)/1000, 0.05); last = now;
+  // decay
+  const k = Math.exp(-dt*0.5);
+  excess.x *= k; excess.y *= k;
+  const sx = base.x + excess.x, sy = base.y + excess.y;
+  if(!dragging){ applyRot(sx*dt, sy*dt); }
+  // else direct manipulation already applied on move; but also add base? skip while dragging for pure control.
+  ...
+}
+```
+
+Hmm, while dragging, the pointermove applies rotation directly. Between moves (pointer stationary while pressed), no rotation — that's fine, feels like holding.
+
+Speed for HUD: while dragging, use |fling|; otherwise |base+excess|.
+
+Rim: speed = Math.hypot(sx, sy); uRim = 0.22 + Math.min(speed/5, 1)*0.45.
+
+Axis angle: axis = (sx, sy) normalized (in world XY plane; camera looks down -Z, screen x = world x, screen y = world y). CSS rotate: angle = Math.atan2(sy, sx) but CSS rotate positive is clockwise (y down). Screen y is down, world y is up. So screenAngle = -Math.atan2(sy, sx)? Let me think: world axis (1,0) → points right on screen → CSS rotate 0. World axis (0,1) → points up on screen → CSS rotate -90deg. So cssAngle = -atan2(sy, sx). Yes.
+
+Only update the widget when speed > small threshold; opacity = clamp(speed/1.5, 0.25, 1).
+
+FPS: fps = fps*0.9 + (1/dt)*0.1.
+
+Text update every 150ms: tSpeed = (speed*180/PI).toFixed(0) + "°/s"; tFps = Math.round(fps); tState = dragging ? "dragging" : (Math.hypot(excess.x,excess.y) > 0.3 ? "flinging" : "idle").
+
+Clamp excess on fling: max 12 rad/s.
+
+Also clamp excess during drag? Fling is set on release; fine.
+
+applyRot(rx, ry):
+```js
+function applyRot(rx, ry){
+  // R = Rx * Ry * R
+  const cx=Math.cos(rx), sx=Math.sin(rx), cy=Math.cos(ry), sy=Math.sin(ry);
+  // build temp = Ry * R
+  ...
+}
+```
+Simpler: use mat4Mul with pre-allocated temps:
+
+```js
+const mR = mat4Identity();
+const t1 = new Float32Array(16), t2 = new Float32Array(16);
+function applyRot(rx, ry){
+  rotXInto(t1, rx); rotYInto(t2, ry);
+  mulInto(t1, t1, t2);      // t1 = Rx*Ry
+  mulInto(t1, t1, mR);      // t1 = Rx*Ry*R
+  mR.set(t1);
+}
+```
+
+mulInto(out,a,b) as above.
+
+Uniforms: uModel = mR, uView = translate(0,0,-3.2), uProj = perspective(45°, aspect, 0.1, 10).
+
+Sphere radius 1, camera z 3.2, fov 45° → sphere angular size: 2*atan(1/3.2) ≈ 34.3°, vs 45° fov → occupies ~76% of height. Good, centered, with margin.
+
+Draw order: bg (depth test off, or depth func always), then ball with depth.
+
+```js
+gl.enable(gl.DEPTH_TEST);
+gl.enable(gl.CULL_FACE);
+// bg
+gl.depthMask(false); gl.disable(gl.DEPTH_TEST);
+gl.useProgram(bgProg); gl.bindVertexArray(bgVAO);
+set uniforms; gl.drawArrays(gl.TRIANGLES,0,3);
+// ball
+gl.depthMask(true); gl.enable(gl.DEPTH_TEST);
+gl.useProgram(ballProg); gl.bindVertexArray(ballVAO);
+set uniforms; gl.drawElements(gl.TRIANGLES, idxCount, gl.UNSIGNED_SHORT, 0);
+```
+
+Index count: LAT*LON*6 = 20*50*6 = 6000 < 65536 ✓. Vertex count: (LAT+1)*LON = 21*50 = 1050.
+
+Clear: gl.clearColor(0,0,0,1); clear once (bg covers everything anyway).
+
+WebGL2 check with fallback message:
+
+```js
+if(!gl){ document.getElementById('fallback').style.display='grid'; }
+```
+
+Fallback div: centered message "WebGL2 is not available in this browser."
+
+Pointer events:
+
+```js
+canvas.addEventListener('pointerdown', e=>{
+  dragging = true;
+  canvas.setPointerCapture(e.pointerId);
+  lastX = e.clientX; lastY = e.clientY; lastT = performance.now();
+  fling.x = 0; fling.y = 0;
+  document.body.classList.add('dragging');
+  hint.classList.add('seen');
+});
+canvas.addEventListener('pointermove', e=>{
+  if(!dragging) return;
+  const now = performance.now();
+  const dtm = Math.max((now - lastT)/1000, 0.001);
+  const dx = e.clientX - lastX, dy = e.clientY - lastY;
+  const S = 0.0042;
+  applyRot(dy*S, dx*S);
+  fling.x = fling.x*0.55 + (dy/dtm)*S*0.45;
+  fling.y = fling.y*0.55 + (dx/dtm)*S*0.45;
+  lastX = e.clientX; lastY = e.clientY; lastT = now;
+});
+function endDrag(e){
+  if(!dragging) return;
+  dragging = false;
+  document.body.classList.remove('dragging');
+  const m = Math.hypot(fling.x, fling.y);
+  const cap = 11;
+  const s = m > cap ? cap/m : 1;
+  excess.x = fling.x*s; excess.y = fling.y*s;
+}
+canvas.addEventListener('pointerup', endDrag);
+canvas.addEventListener('pointercancel', endDrag);
+```
+
+Note: fling velocity can be huge if dtm is tiny; the cap handles it.
+
+Resize:
+
+```js
+function resize(){
+  const dpr = Math.min(window.devicePixelRatio||1, 2);
+  canvas.width = Math.round(innerWidth*dpr);
+  canvas.height = Math.round(innerHeight*dpr);
+  gl.viewport(0,0,canvas.width,canvas.height);
+  proj = mat4Perspective(45*Math.PI/180, canvas.width/canvas.height, 0.1, 20);
+}
+window.addEventListener('resize', resize); resize();
+```
+
+Canvas CSS: position fixed; inset 0; width 100%; height 100%; display block.
+
+uRes uniform: pass canvas.width/height (pixels) — used for aspect in the bg shader.
+
+Now let me assemble the full HTML. Also `<meta name="viewport">`, title.
+
+Double-check the "roughly 2,000" triangle requirement: exactly 2000.
+
+One more consideration: "shade with a single directional light so curvature is visible" — my shading has ambient + wrap + rim + specular, all from the same single directional light (ambient is a constant, not a light). That's fine and standard; the primary term is the directional diffuse. Good.
+
+Let me also make sure the ball is "centered in view" — yes, at origin, camera on axis.
+
+Let me write the final file. Keep the code clean, lightly commented.
+
+CSS details:
+
+```css
+:root{
+  --ink:#dfe7f2; --muted:#7d8ca3; --cyan:#6fe3ff; --amber:#ffb35c;
+  --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+  --disp: "Avenir Next", Avenir, Futura, "Century Gothic", "Segoe UI", system-ui, sans-serif;
+}
+*{ margin:0; box-sizing:border-box; }
+html,body{ height:100%; }
+body{ background:#04060c; overflow:hidden; font-family:var(--disp); color:var(--ink); }
+canvas#gl{ position:fixed; inset:0; width:100%; height:100%; display:block; cursor:grab; touch-action:none; }
+body.dragging canvas#gl{ cursor:grabbing; }
+.hud{ position:fixed; inset:0; pointer-events:none; padding:clamp(18px,3.4vw,44px); display:flex; flex-direction:column; justify-content:space-between; }
+.hud-top{ display:flex; justify-content:space-between; align-items:flex-start; gap:20px; }
+.overline{ font-family:var(--mono); font-size:10px; letter-spacing:.28em; text-transform:uppercase; color:var(--cyan); opacity:.85; }
+h1{ font-size:clamp(30px,4.6vw,58px); font-weight:800; letter-spacing:-.02em; line-height:.95; margin-top:10px; text-shadow:0 2px 30px rgba(0,0,0,.6); }
+h1 em{ font-style:normal; color:var(--amber); }  // maybe "Kinetic" white, "Sphere" amber?
+.sub{ margin-top:10px; font-size:13px; color:var(--muted); font-weight:400; letter-spacing:.01em; }
+```
+
+Title: "Kinetic Sphere" — maybe style "Sphere" in amber. Or the title "SPIN / 2000"? Let me do: h1 "Kinetic <em>Sphere</em>".
+
+Axis widget:
+
+```css
+.axis{ width:64px; height:64px; border:1px solid rgba(140,170,210,.25); border-radius:50%; position:relative; flex:none; }
+.axis .rot{ position:absolute; inset:0; }
+.axis .line{ position:absolute; left:50%; top:50%; width:38px; height:2px; margin:-1px 0 0 -19px; background:linear-gradient(90deg, rgba(111,227,255,0), var(--cyan)); border-radius:2px; }
+.axis .line::after{ content:""; position:absolute; right:-3px; top:-3px; width:8px; height:8px; border-radius:50%; background:var(--cyan); box-shadow:0 0 10px var(--cyan); }
+.axis .lbl{ position:absolute; left:50%; top:calc(100% + 8px); transform:translateX(-50%); font-family:var(--mono); font-size:9px; letter-spacing:.22em; text-transform:uppercase; color:var(--muted); white-space:nowrap; }
+```
+
+Telemetry:
+
+```css
+.hud-bottom{ display:flex; justify-content:space-between; align-items:flex-end; gap:20px; }
+.telemetry{ font-family:var(--mono); font-size:11.5px; border-left:2px solid rgba(111,227,255,.5); padding-left:14px; display:grid; gap:6px; }
+.telemetry .row{ display:flex; gap:12px; }
+.telemetry .k{ color:var(--muted); letter-spacing:.18em; text-transform:uppercase; font-size:9.5px; padding-top:2px; }
+.telemetry .v{ color:var(--ink); min-width:86px; }
+.hint{ font-family:var(--mono); font-size:11px; color:var(--muted); letter-spacing:.06em; transition:opacity 1.2s ease; text-align:right; }
+.hint.seen{ opacity:0; }
+```
+
+Maybe add a small pulse animation on the overline dot: a "●" that pulses. Add `.overline::before { content:""; ... }`? Let me add a live dot: `<span class="dot"></span>` with a pulse keyframe. Nice touch.
+
+```css
+.dot{ display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--cyan); margin-right:8px; box-shadow:0 0 8px var(--cyan); animation:pulse 2.4s ease-in-out infinite; vertical-align:1px; }
+@keyframes pulse{ 0%,100%{opacity:1} 50%{opacity:.35} }
+```
+
+Fallback:
+
+```css
+#fallback{ display:none; position:fixed; inset:0; place-items:center; font-family:var(--mono); color:var(--muted); text-align:center; padding:24px; }
+```
+
+Now let me write the JS in full. Also guard: if gl is null, skip everything.
+
+Uniform locations cached.
+
+Let me write the shader sources as template strings.
+
+One concern: `hash(gl_FragCoord.xy + fract(uTime))` — fract(uTime) changes every frame → dither pattern changes every frame, that's fine (adds a subtle film grain). Actually, per-frame random dither = film grain, might be a bit noisy; amplitude 1.5/255 is very subtle. OK.
+
+Star twinkle uses uTime — fine.
+
+Also add a slight parallax: the ball shifts a few px opposite to the mouse? That's a nice micro-interaction: on pointermove (even when not dragging), track mouse, and offset the view slightly (e.g., ±0.05 units). Subtle life. Implementation: target offset = (mouseX-0.5)*0.12, (0.5-mouseY)*0.12; smooth: off += (target-off)*min(1,dt*3). View = translate(-offX, -offY, -3.2)? Moving the camera slightly. Also the light stays fixed → shading shifts subtly. Nice. Keep amplitude small (0.08). Also the background glow could shift slightly with the mouse — skip, keep it in the shader.
+
+But note: the axis widget projection assumes the camera is on the axis; with a small offset it's still approximately fine.
+
+Let me finalize the numbers:
+- base spin: x=0.16, y=0.42 rad/s → ~24°/s + tilt. Slow. ✓
+- Decay rate 0.5 → time constant 2s. Fling cap 11 rad/s (~630°/s).
+- Drag sensitivity 0.0042 rad/px → 300px drag = 1.26 rad ≈ 72°. Good.
+
+Rim: uRim = 0.22 + min(speed/5,1)*0.45.
+
+Background uGlow = min(speed/6,1)*0.8 → the glow behind the ball intensifies with speed. Nice feedback.
+
+Now let me write it all out. Also `precision highp float` in the fragment.
+
+Ball vertex shader: pass normal as mat3(uModel)*aPos — model is rotation only, so fine.
+
+Let me write the mulInto:
+
+```js
+function mulInto(o, a, b){
+  for(let c=0;c<4;c++){
+    const b0=b[c*4], b1=b[c*4+1], b2=b[c*4+2], b3=b[c*4+3];
+    o[c*4]   = a[0]*b0 + a[4]*b1 + a[8]*b2 + a[12]*b3;
+    o[c*4+1] = a[1]*b0 + a[5]*b1 + a[9]*b2 + a[13]*b3;
+    o[c*4+2] = a[2]*b0 + a[6]*b1 + a[10]*b2 + a[14]*b3;
+    o[c*4+3] = a[3]*b0 + a[7]*b1 + a[11]*b2 + a[15]*b3;
+  }
+}
+```
+
+Note: if o aliases a or b, in-place is dangerous. In applyRot I use separate temps: t1 = Rx, t2 = Ry; mulInto(t1, t1, t2) — o aliases a: is that safe? o[c*4] writes to t1[c*4..], and reads a[0..15] = t1. When c=0, we write t1[0..3] and then read a[4..] etc. for c=1 — but a[0..3] is already overwritten before it's used in c=1? For c=1, we read a[0],a[4],a[8],a[12] — a[0] was overwritten at c=0! Not safe. So use a third temp:
+
+```js
+function applyRot(rx, ry){
+  rotXInto(tA, rx);
+  rotYInto(tB, ry);
+  mulInto(tC, tA, tB);   // tC = Rx*Ry
+  mulInto(tA, tC, mR);   // tA = Rx*Ry*R
+  mR.set(tA);
+}
+```
+
+Safe.
+
+rotXInto:
+```js
+function rotXInto(o, a){ const c=Math.cos(a), s=Math.sin(a);
+  o[0]=1;o[1]=0;o[2]=0;o[3]=0; o[4]=0;o[5]=c;o[6]=s;o[7]=0; o[8]=0;o[9]=-s;o[10]=c;o[11]=0; o[12]=0;o[13]=0;o[14]=0;o[15]=1; }
+function rotYInto(o, a){ const c=Math.cos(a), s=Math.sin(a);
+  o[0]=c;o[1]=0;o[2]=-s;o[3]=0; o[4]=0;o[5]=1;o[6]=0;o[7]=0; o[8]=s;o[9]=0;o[10]=c;o[11]=0; o[12]=0;o[13]=0;o[14]=0;o[15]=1; }
+```
+
+View matrix: translate(-offX, -offY, -3.2):
+```js
+function viewInto(o, x, y, z){ o.set(ID); o[12]=-x; o[13]=-y; o[14]=-z; }
+```
+Wait, view = translate(-camPos). Camera at (offX, offY, 3.2) → view = translate(-offX, -offY, -3.2). So o[12] = -offX, etc. Let me just build it directly:
+
+```js
+view[12] = -off.x; view[13] = -off.y; view[14] = -3.2;
+```
+with view initialized to identity once.
+
+Light direction: normalize(0.55, 0.6, 0.55)? Let me pick (0.5, 0.65, 0.57) normalized. Compute in JS.
+
+Uniforms per frame: uProj (on resize), uView, uModel, uLightDir, uCamPos (off.x, off.y, 3.2), uRim.
+
+Now the HUD update:
+
+```js
+let hudT = 0;
+in frame: hudT += dt; if(hudT > 0.15){ hudT = 0; update text }
+```
+
+Axis widget every frame:
+```js
+const sp = Math.hypot(sx, sy);
+const ang = -Math.atan2(sy, sx);
+axisRot.style.transform = `rotate(${ang}rad)`;
+axisEl.style.opacity = (0.35 + Math.min(sp/4,1)*0.65).toFixed(2);
+```
+
+Wait, the arrow line is centered and symmetric — a line with a dot at the right end indicates direction. Rotating by ang makes the dot point in the axis direction. Good.
+
+Speed display: while dragging, use |fling|; otherwise |base+excess|.
+
+Edge: initial excess 0 → speed = hypot(0.16,0.42)=0.45 rad/s = 25.8°/s.
+
+Title text: "Kinetic Sphere". Overline: "WebGL2 · one file · zero libraries". Sub: "2,000 triangles · one directional light · drag to fling".
+
+Hmm, the hint already says drag. Sub: "2,000 triangles · single directional light · Lambert + rim". Fine.
+
+Also add `<meta charset>`.
+
+Let me double-check the bg shader star cell: p is in aspect-corrected space, range roughly [-aspect, aspect] x [-1,1]. p*26 → cells. fract(p*26.0)-0.5 is in [-0.5,0.5]. sp is in [-0.35,0.35]. sd is small near the star. smoothstep(0.06,0.0,sd) → 1 at center, 0 at 0.06. Star radius 0.06 cell ≈ 0.06/26 in p units ≈ 0.0023 → in pixels: p unit ≈ (height/2) px → 0.0023*540 ≈ 1.2px. Small star, good.
+
+Star brightness: (h-0.93)/0.07 max 1 * 0.35 * tw(0.2..1) → max ~0.35 added to a dark background. OK, subtle.
+
+Dither: hash returns 0..1, minus 0.5, times 1.5/255 ≈ ±0.003. Subtle. Good.
+
+Vignette: 1 - 0.45*smoothstep(0.55,1.75,d). At d=0: 1. At corner d≈1.8 (16:9: aspect 1.78, corner d = sqrt(1.78²+1)=2.06): smoothstep→1 → 0.55. OK.
+
+Glow: exp(-d²*2.2): at d=0.5 (ball edge ~0.5 in p units? Ball radius 1 at z=3.2, fov 45: half-height at origin = 3.2*tan(22.5°)=1.325 → ball edge at 1/1.325 = 0.755 in p units). So glow at ball edge: exp(-0.568*2.2)=exp(-1.25)=0.286 * 0.085 ≈ 0.024. Subtle halo. Good.
+
+uGlow term: exp(-d*1.1)*uGlow*color(0.02,0.05,0.07) — at uGlow 0.8: center 0.056 blue. Adds a speed-reactive halo. Good.
+
+Now, one more check: WebGL2 `layout(location=0)` in the vertex shader — supported in ES 3.0. ✓.
+
+drawElements with UNSIGNED_SHORT. ✓.
+
+Also set `gl.clearColor(0.012,0.016,0.028,1)` and clear each frame (bg overwrites anyway, but for safety).
+
+Antialias: true.
+
+Also handle `visibilitychange`? dt is clamped to 0.05, fine.
+
+Let me write the final HTML. Also make sure no markdown fences in the output — just the file contents.
+
+Let me write it out:
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kinetic Sphere — WebGL2</title>
+<style>
+  :root{
+    --ink:#dfe7f2;
+    --muted:#7d8ca3;
+    --cyan:#6fe3ff;
+    --amber:#ffb35c;
+    --mono:ui-monospace,"SF Mono","Cascadia Code",Menlo,Consolas,monospace;
+    --disp:"Avenir Next",Avenir,Futura,"Century Gothic","Segoe UI",system-ui,sans-serif;
+  }
+  *{margin:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{background:#04060c;overflow:hidden;font-family:var(--disp);color:var(--ink)}
+  #gl{position:fixed;inset:0;width:100%;height:100%;display:block;cursor:grab;touch-action:none}
+  body.dragging #gl{cursor:grabbing}
+  .hud{position:fixed;inset:0;pointer-events:none;padding:clamp(18px,3.4vw,44px);display:flex;flex-direction:column;justify-content:space-between}
+  .hud-top{display:flex;justify-content:space-between;align-items:flex-start;gap:24px}
+  .overline{font-family:var(--mono);font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:var(--cyan);opacity:.9;display:flex;align-items:center}
+  .dot{width:6px;height:6px;border-radius:50%;background:var(--cyan);box-shadow:0 0 8px var(--cyan);margin-right:10px;animation:pulse 2.4s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  h1{font-size:clamp(30px,4.6vw,58px);font-weight:800;letter-spacing:-.02em;line-height:.95;margin-top:12px;text-shadow:0 2px 34px rgba(0,0,0,.65)}
+  h1 em{font-style:normal;color:var(--amber)}
+  .sub{margin-top:10px;font-size:13px;font-weight:400;color:var(--muted);letter-spacing:.02em}
+  .axis{width:64px;height:64px;flex:none;border:1px solid rgba(140,170,210,.28);border-radius:50%;position:relative;transition:opacity .4s}
+  .axis .rot{position:absolute;inset:0}
+  .axis .line{position:absolute;left:50%;top:50%;width:38px;height:2px;margin:-1px 0 0 -19px;background:linear-gradient(90deg,rgba(111,227,255,0),var(--cyan));border-radius:2px}
+  .axis .line::after{content:"";position:absolute;right:-3px;top:-3px;width:8px;height:8px;border-radius:50%;background:var(--cyan);box-shadow:0 0 10px var(--cyan)}
+  .axis .lbl{position:absolute;left:50%;top:calc(100% + 9px);transform:translateX(-50%);font-family:var(--mono);font-size:9px;letter-spacing:.24em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+  .hud-bottom{display:flex;justify-content:space-between;align-items:flex-end;gap:24px}
+  .telemetry{font-family:var(--mono);font-size:11.5px;border-left:2px solid rgba(111,227,255,.55);padding-left:14px;display:grid;gap:7px}
+  .telemetry .row{display:flex;gap:14px;align-items:baseline}
+  .telemetry .k{color:var(--muted);letter-spacing:.2em;text-transform:uppercase;font-size:9.5px;min-width:52px}
+  .telemetry .v{color:var(--ink)}
+  .hint{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.06em;text-align:right;transition:opacity 1.4s ease}
+  .hint.seen{opacity:0}
+  #fallback{display:none;position:fixed;inset:0;place-items:center;font-family:var(--mono);font-size:13px;color:var(--muted);text-align:center;padding:24px;line-height:1.7}
+  @media (max-width:560px){ .axis{display:none} .sub{display:none} }
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div class="hud" aria-hidden="true">
+  <div class="hud-top">
+    <div>
+      <div class="overline"><span class="dot"></span>WebGL2 · one file · zero libraries</div>
+      <h1>Kinetic <em>Sphere</em></h1>
+      <p class="sub">2,000 triangles · one directional light · Lambert + rim</p>
+    </div>
+    <div class="axis" id="axis">
+      <div class="rot" id="axisRot"><div class="line"></div></div>
+      <span class="lbl">spin axis</span>
+    </div>
+  </div>
+  <div class="hud-bottom">
+    <div class="telemetry">
+      <div class="row"><span class="k">ω</span><span class="v" id="tSpeed">—</span></div>
+      <div class="row"><span class="k">state</span><span class="v" id="tState">idle</span></div>
+      <div class="row"><span class="k">tris</span><span class="v">2000</span></div>
+      <div class="row"><span class="k">fps</span><span class="v" id="tFps">—</span></div>
+    </div>
+    <div class="hint" id="hint">drag to fling — it settles back to a slow spin</div>
+  </div>
+</div>
+<div id="fallback">WebGL2 is not available in this browser.<br>Try a recent Chrome, Firefox, Edge or Safari.</div>
+<script>
+...
+</script>
+</body>
+</html>
+```
+
+Now the script. Let me write it in full:
+
+```js
+(() => {
+"use strict";
+const canvas = document.getElementById("gl");
+const gl = canvas.getContext("webgl2", { antialias: true, alpha: false });
+if (!gl) { document.getElementById("fallback").style.display = "grid"; return; }
+
+/* ---------- shaders ---------- */
+const BG_VS = `#version 300 es
+layout(location=0) in vec2 aPos;
+out vec2 vUv;
+void main(){ vUv = aPos*0.5+0.5; gl_Position = vec4(aPos,0.0,1.0); }`;
+
+const BG_FS = `#version 300 es
+precision highp float;
+in vec2 vUv;
+uniform vec2 uRes;
+uniform float uTime;
+uniform float uGlow;
+out vec4 fragColor;
+float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7)))*43758.5453); }
+void main(){
+  vec2 p = vUv*2.0-1.0;
+  p.x *= uRes.x/uRes.y;
+  float d = length(p);
+  float breathe = 0.92 + 0.08*sin(uTime*0.5);
+  vec3 col = vec3(0.014,0.018,0.030);
+  col += vec3(0.050,0.085,0.130) * exp(-d*d*2.2) * breathe;
+  col += vec3(0.020,0.050,0.070) * exp(-d*1.1) * uGlow;
+  vec2 cell = floor(p*26.0);
+  float h = hash(cell);
+  if (h > 0.93){
+    vec2 sp = (vec2(hash(cell+7.31), hash(cell+3.70)) - 0.5)*0.7;
+    float sd = length(fract(p*26.0)-0.5 - sp);
+    float tw = 0.6 + 0.4*sin(uTime*(0.4+h) + h*40.0);
+    col += vec3(0.55,0.70,0.95) * smoothstep(0.06,0.0,sd) * ((h-0.93)/0.07) * 0.35 * tw;
+  }
+  col *= 1.0 - 0.45*smoothstep(0.55,1.75,d);
+  col += (hash(gl_FragCoord.xy + fract(uTime)) - 0.5) * (1.5/255.0);
+  fragColor = vec4(col,1.0);
+}`;
+
+const BALL_VS = `#version 300 es
+layout(location=0) in vec3 aPos;
+uniform mat4 uModel, uView, uProj;
+out vec3 vNormal;
+out vec3 vWorld;
+void main(){
+  vec4 w = uModel * vec4(aPos,1.0);
+  vWorld = w.xyz;
+  vNormal = mat3(uModel) * aPos;
+  gl_Position = uProj * uView * w;
+}`;
+
+const BALL_FS = `#version 300 es
+precision highp float;
+in vec3 vNormal;
+in vec3 vWorld;
+uniform vec3 uLightDir;
+uniform vec3 uCamPos;
+uniform float uRim;
+out vec4 fragColor;
+void main(){
+  vec3 N = normalize(vNormal);
+  vec3 L = normalize(uLightDir);
+  vec3 V = normalize(uCamPos - vWorld);
+  float ndl = dot(N,L);
+  float diff = clamp(ndl, 0.0, 1.0);
+  float wrap = clamp((ndl + 0.18)/1.18, 0.0, 1.0);
+  vec3 H = normalize(L + V);
+  float spec = pow(clamp(dot(N,H),0.0,1.0), 60.0);
+  float fres = pow(1.0 - clamp(dot(N,V),0.0,1.0), 3.0);
+  vec3 base = vec3(0.94,0.66,0.36);
+  vec3 light = vec3(1.00,0.97,0.92);
+  vec3 col = base * (vec3(0.045,0.060,0.100) + light * diff * 1.05);
+  col += base * light * wrap * 0.18;
+  col += vec3(1.00,0.98,0.95) * spec * 0.55;
+  col += vec3(0.35,0.75,1.00) * fres * uRim;
+  col = 1.0 - exp(-col * 1.6);
+  fragColor = vec4(col,1.0);
+}`;
+
+function compile(type, src){
+  const s = gl.createShader(type);
+  gl.shaderSource(s, src);
+  gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+  return s;
+}
+function program(vs, fs){
+  const p = gl.createProgram();
+  gl.attachShader(p, compile(gl.VERTEX_SHADER, vs));
+  gl.attachShader(p, compile(gl.FRAGMENT_SHADER, fs));
+  gl.linkProgram(p);
+  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+  return p;
+}
+
+const bgProg = program(BG_VS, BG_FS);
+const ballProg = program(BALL_VS, BALL_FS);
+
+const U = {
+  bgRes: gl.getUniformLocation(bgProg, "uRes"),
+  bgTime: gl.getUniformLocation(bgProg, "uTime"),
+  bgGlow: gl.getUniformLocation(bgProg, "uGlow"),
+  m: gl.getUniformLocation(ballProg, "uModel"),
+  v: gl.getUniformLocation(ballProg, "uView"),
+  p: gl.getUniformLocation(ballProg, "uProj"),
+  light: gl.getUniformLocation(ballProg, "uLightDir"),
+  cam: gl.getUniformLocation(ballProg, "uCamPos"),
+  rim: gl.getUniformLocation(ballProg, "uRim"),
+};
+
+/* ---------- background quad ---------- */
+const bgVAO = gl.createVertexArray();
+gl.bindVertexArray(bgVAO);
+const bgBuf = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, bgBuf);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 3,-1, -1,3]), gl.STATIC_DRAW);
+gl.enableVertexAttribArray(0);
+gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+
+/* ---------- sphere: 20 lat x 50 lon = 2000 triangles ---------- */
+const LAT = 20, LON = 50;
+{
+  const verts = new Float32Array((LAT+1)*LON*3);
+  let k = 0;
+  for (let i = 0; i <= LAT; i++){
+    const th = i/LAT * Math.PI, st = Math.sin(th), ct = Math.cos(th);
+    for (let j = 0; j < LON; j++){
+      const ph = j/LON * Math.PI*2;
+      verts[k++] = st*Math.cos(ph);
+      verts[k++] = ct;
+      verts[k++] = st*Math.sin(ph);
+    }
+  }
+  const idx = new Uint16Array(LAT*LON*6);
+  let n = 0;
+  for (let i = 0; i < LAT; i++){
+    for (let j = 0; j < LON; j++){
+      const a = i*LON + j, b = i*LON + (j+1)%LON;
+      const c = (i+1)*LON + j, d = (i+1)*LON + (j+1)%LON;
+      idx[n++]=a; idx[n++]=b; idx[n++]=c;
+      idx[n++]=b; idx[n++]=d; idx[n++]=c;
+    }
+  }
+  const ballVAO = gl.createVertexArray();
+  gl.bindVertexArray(ballVAO);
+  const vbo = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+  gl.bufferData(gl.ARRAY_BUFFER, verts, gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0);
+  gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+  const ibo = gl.createBuffer();
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo);
+  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, idx, gl.STATIC_DRAW);
+  window.__triCount = idx.length/3; // 2000
+}
+```
+
+Hmm, window.__triCount is unnecessary; the HUD hardcodes 2000. Remove.
+
+Matrices:
+
+```js
+const ID = new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]);
+const model = ID.slice();
+const view = ID.slice();
+let proj = ID.slice();
+const tA = new Float32Array(16), tB = new Float32Array(16), tC = new Float32Array(16);
+
+function rotXInto(o,a){ const c=Math.cos(a),s=Math.sin(a);
+  o[0]=1;o[1]=0;o[2]=0;o[3]=0; o[4]=0;o[5]=c;o[6]=s;o[7]=0;
+  o[8]=0;o[9]=-s;o[10]=c;o[11]=0; o[12]=0;o[13]=0;o[14]=0;o[15]=1; }
+function rotYInto(o,a){ const c=Math.cos(a),s=Math.sin(a);
+  o[0]=c;o[1]=0;o[2]=-s;o[3]=0; o[4]=0;o[5]=1;o[6]=0;o[7]=0;
+  o[8]=s;o[9]=0;o[10]=c;o[11]=0; o[12]=0;o[13]=0;o[14]=0;o[15]=1; }
+function mulInto(o,a,b){
+  for(let c=0;c<4;c++){
+    const b0=b[c*4],b1=b[c*4+1],b2=b[c*4+2],b3=b[c*4+3];
+    o[c*4]  =a[0]*b0+a[4]*b1+a[8]*b2+a[12]*b3;
+    o[c*4+1]=a[1]*b0+a[5]*b1+a[9]*b2+a[13]*b3;
+    o[c*4+2]=a[2]*b0+a[6]*b1+a[10]*b2+a[14]*b3;
+    o[c*4+3]=a[3]*b0+a[7]*b1+a[11]*b2+a[15]*b3;
+  }
+}
+function applyRot(rx,ry){
+  rotXInto(tA,rx); rotYInto(tB,ry);
+  mulInto(tC,tA,tB);
+  mulInto(tA,tC,model);
+  model.set(tA);
+}
+function perspective(o, fovy, aspect, near, far){
+  const f = 1/Math.tan(fovy/2);
+  o.fill(0);
+  o[0]=f/aspect; o[5]=f; o[10]=(far+near)/(near-far); o[11]=-1; o[14]=2*far*near/(near-far);
+}
+```
+
+Light:
+
+```js
+const lightDir = (() => { const v=[0.5,0.65,0.57], l=Math.hypot(...v); return v.map(x=>x/l); })();
+```
+
+State:
+
+```js
+const base = { x: 0.16, y: 0.42 };
+let excess = { x: 0, y: 0 };
+let fling = { x: 0, y: 0 };
+let dragging = false, lastX=0, lastY=0, lastT=0;
+const off = { x:0, y:0 }, offT = { x:0, y:0 };
+let fps = 60, hudT = 0;
+
+const tSpeed = document.getElementById("tSpeed");
+const tState = document.getElementById("tState");
+const tFps = document.getElementById("tFps");
+const axisEl = document.getElementById("axis");
+const axisRot = document.getElementById("axisRot");
+const hint = document.getElementById("hint");
+```
+
+Pointer:
+
+```js
+const SENS = 0.0042;
+canvas.addEventListener("pointerdown", e => {
+  dragging = true;
+  canvas.setPointerCapture(e.pointerId);
+  lastX = e.clientX; lastY = e.clientY; lastT = performance.now();
+  fling.x = 0; fling.y = 0;
+  document.body.classList.add("dragging");
+  hint.classList.add("seen");
+});
+canvas.addEventListener("pointermove", e => {
+  offT.x = (e.clientX/innerWidth - 0.5) * 0.10;
+  offT.y = (0.5 - e.clientY/innerHeight) * 0.10;
+  if (!dragging) return;
+  const now = performance.now();
+  const dtm = Math.max((now - lastT)/1000, 0.001);
+  const dx = e.clientX - lastX, dy = e.clientY - lastY;
+  applyRot(dy*SENS, dx*SENS);
+  fling.x = fling.x*0.55 + (dy/dtm)*SENS*0.45;
+  fling.y = fling.y*0.55 + (dx/dtm)*SENS*0.45;
+  lastX = e.clientX; lastY = e.clientY; lastT = now;
+});
+function endDrag(){
+  if (!dragging) return;
+  dragging = false;
+  document.body.classList.remove("dragging");
+  const m = Math.hypot(fling.x, fling.y), cap = 11;
+  const s = m > cap ? cap/m : 1;
+  excess.x = fling.x*s; excess.y = fling.y*s;
+}
+canvas.addEventListener("pointerup", endDrag);
+canvas.addEventListener("pointercancel", endDrag);
+```
+
+Wait: offT is the camera offset — moving the mouse right should move the camera right (ball appears to shift left) — parallax. off.x positive → view translate -off.x → camera at +x → ball appears shifted left. Either way, subtle. Fine.
+
+Resize:
+
+```js
+function resize(){
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  canvas.width = Math.max(1, Math.round(innerWidth*dpr));
+  canvas.height = Math.max(1, Math.round(innerHeight*dpr));
+  gl.viewport(0,0,canvas.width,canvas.height);
+  perspective(proj, 45*Math.PI/180, canvas.width/canvas.height, 0.1, 20);
+}
+addEventListener("resize", resize);
+resize();
+```
+
+Loop:
+
+```js
+gl.enable(gl.DEPTH_TEST);
+gl.enable(gl.CULL_FACE);
+gl.clearColor(0.014,0.018,0.030,1);
+
+let last = performance.now();
+function frame(now){
+  const dt = Math.min((now-last)/1000, 0.05);
+  last = now;
+  const t = now/1000;
+
+  const k = Math.exp(-dt*0.5);
+  excess.x *= k; excess.y *= k;
+  const sx = base.x + excess.x, sy = base.y + excess.y;
+  if (!dragging) applyRot(sx*dt, sy*dt);
+
+  const sm = Math.min(1, dt*3);
+  off.x += (offT.x - off.x)*sm;
+  off.y += (offT.y - off.y)*sm;
+  view[12] = -off.x; view[13] = -off.y; view[14] = -3.2;
+
+  const speed = Math.hypot(sx, sy);
+  const rim = 0.22 + Math.min(speed/5, 1)*0.45;
+  const glow = Math.min(speed/6, 1)*0.8;
+
+  // background
+  gl.disable(gl.DEPTH_TEST);
+  gl.depthMask(false);
+  gl.useProgram(bgProg);
+  gl.uniform2f(U.bgRes, canvas.width, canvas.height);
+  gl.uniform1f(U.bgTime, t);
+  gl.uniform1f(U.bgGlow, glow);
+  gl.bindVertexArray(bgVAO);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+  // ball
+  gl.enable(gl.DEPTH_TEST);
+  gl.depthMask(true);
+  gl.useProgram(ballProg);
+  gl.uniformMatrix4fv(U.m, false, model);
+  gl.uniformMatrix4fv(U.v, false, view);
+  gl.uniformMatrix4fv(U.p, false, proj);
+  gl.uniform3fv(U.light, lightDir);
+  gl.uniform3f(U.cam, off.x, off.y, 3.2);
+  gl.uniform1f(U.rim, rim);
+  gl.bindVertexArray(ballVAO);
+  gl.drawElements(gl.TRIANGLES, LAT*LON*6, gl.UNSIGNED_SHORT, 0);
+
+  // HUD
+  const sp = dragging ? Math.hypot(fling.x, fling.y) : speed;
+  axisRot.style.transform = `rotate(${-Math.atan2(sy, sx)}rad)`;
+  axisEl.style.opacity = (0.35 + Math.min(sp/4, 1)*0.65).toFixed(2);
+  fps = fps*0.92 + (1/Math.max(dt,1e-4))*0.08;
+  hudT += dt;
+  if (hudT > 0.15){
+    hudT = 0;
+    tSpeed.textContent = (sp*180/Math.PI).toFixed(0) + "°/s";
+    tFps.textContent = Math.round(fps);
+    tState.textContent = dragging ? "dragging" : (Math.hypot(excess.x,excess.y) > 0.3 ? "flinging" : "idle");
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+})();
+```
+
+Wait: view is initialized as ID.slice() — view[12..14] set each frame, others remain identity. ✓.
+
+One issue: `view` is a Float32Array from ID.slice() — fine.
+
+Another: while dragging, the ball only rotates via pointermove; if the pointer is stationary while pressed, the ball freezes — acceptable, feels like holding.
+
+Also, the ω display while dragging uses fling, which is 0 until the first move — fine.
+
+Check: `gl.uniform3fv(U.light, lightDir)` — lightDir is an array from map → regular Array, fine.
+
+Potential issue: `canvas.setPointerCapture` — pointermove events then target the canvas even outside. Good.
+
+Also, pointermove on canvas fires only when the pointer is over the canvas — since it's fullscreen, always. But the HUD is pointer-events none, so the canvas receives events. ✓.
+
+Touch: pointer events cover it; touch-action none prevents scroll. ✓.
+
+Now, the "roughly 2,000" triangle requirement: exactly 2000.
+
+One more consideration: "shade with a single directional light so curvature is visible" — my shading has ambient + wrap + rim + specular, all from the same single directional light (ambient is a constant, not a light). That's fine and standard; the primary term is the directional diffuse. Good.
+
+Let me also make sure the ball is "centered in view" — yes, at origin, camera on axis.
+
+Let me write the final file. Keep the code clean, lightly commented.
+
+CSS details:
+
+```css
+:root{
+  --ink:#dfe7f2; --muted:#7d8ca3; --cyan:#6fe3ff; --amber:#ffb35c;
+  --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+  --disp: "Avenir Next", Avenir, Futura, "Century Gothic", "Segoe UI", system-ui, sans-serif;
+}
+*{ margin:0; box-sizing:border-box; }
+html,body{ height:100%; }
+body{ background:#04060c; overflow:hidden; font-family:var(--disp); color:var(--ink); }
+canvas#gl{ position:fixed; inset:0; width:100%; height:100%; display:block; cursor:grab; touch-action:none; }
+body.dragging canvas#gl{ cursor:grabbing; }
+.hud{ position:fixed; inset:0; pointer-events:none; padding:clamp(18px,3.4vw,44px); display:flex; flex-direction:column; justify-content:space-between; }
+.hud-top{ display:flex; justify-content:space-between; align-items:flex-start; gap:20px; }
+.overline{ font-family:var(--mono); font-size:10px; letter-spacing:.28em; text-transform:uppercase; color:var(--cyan); opacity:.85; }
+h1{ font-size:clamp(30px,4.6vw,58px); font-weight:800; letter-spacing:-.02em; line-height:.95; margin-top:10px; text-shadow:0 2px 30px rgba(0,0,0,.6); }
+h1 em{ font-style:normal; color:var(--amber); }
+.sub{ margin-top:10px; font-size:13px; color:var(--muted); font-weight:400; letter-spacing:.01em; }
+```
+
+Title: "Kinetic Sphere" — maybe style "Sphere" in amber. Or the title "SPIN / 2000"? Let me do: h1 "Kinetic <em>Sphere</em>".
+
+Axis widget:
+
+```css
+.axis{ width:64px; height:64px; border:1px solid rgba(140,170,210,.25); border-radius:50%; position:relative; flex:none; }
+.axis .rot{ position:absolute; inset:0; }
+.axis .line{ position:absolute; left:50%; top:50%; width:38px; height:2px; margin:-1px 0 0 -19px; background:linear-gradient(90deg, rgba(111,227,255,0), var(--cyan)); border-radius:2px; }
+.axis .line::after{ content:""; position:absolute; right:-3px; top:-3px; width:8px; height:8px; border-radius:50%; background:var(--cyan); box-shadow:0 0 10px var(--cyan); }
+.axis .lbl{ position:absolute; left:50%; top:calc(100% + 8px); transform:translateX(-50%); font-family:var(--mono); font-size:9px; letter-spacing:.22em; text-transform:uppercase; color:var(--muted); white-space:nowrap; }
+```
+
+Telemetry:
+
+```css
+.hud-bottom{ display:flex; justify-content:space-between; align-items:flex-end; gap:20px; }
+.telemetry{ font-family:var(--mono); font-size:11.5px; border-left:2px solid rgba(111,227,255,.5); padding-left:14px; display:grid; gap:6px; }
+.telemetry .row{ display:flex; gap:12px; }
+.telemetry .k{ color:var(--muted); letter-spacing:.18em; text-transform:uppercase; font-size:9.5px; padding-top:2px; }
+.telemetry .v{ color:var(--ink); min-width:86px; }
+.hint{ font-family:var(--mono); font-size:11px; color:var(--muted); letter-spacing:.06em; transition:opacity 1.2s ease; text-align:right; }
+.hint.seen{ opacity:0; }
+```
+
+Maybe add a small pulse animation on the overline dot: a "●" that pulses. Add `.overline::before { content:""; ... }`? Let me add a live dot: `<span class="dot"></span>` with a pulse keyframe. Nice touch.
+
+```css
+.dot{ display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--cyan); margin-right:8px; box-shadow:0 0 8px var(--cyan); animation:pulse 2.4s ease-in-out infinite; vertical-align:1px; }
+@keyframes pulse{ 0%,100%{opacity:1} 50%{opacity:.35} }
+```
+
+Fallback:
+
+```css
+#fallback{ display:none; position:fixed; inset:0; place-items:center; font-family:var(--mono); color:var(--muted); text-align:center; padding:24px; }
+```
+
+Now let me write the JS in full. Also guard: if gl is null, skip everything.
+
+Uniform locations cached.
+
+Let me write the shader sources as template strings.
+
+One concern: `hash(gl_FragCoord.xy + fract(uTime))` — fract(uTime) changes every frame → dither pattern changes every frame, that's fine (adds a subtle film grain). Actually, per-frame random dither = film grain, might be a bit noisy; amplitude 1.5/255 is very subtle. OK.
+
+Star twinkle uses uTime — fine.
+
+Also add a slight parallax: the ball shifts a few px opposite to the mouse? That's a nice micro-interaction: on pointermove (even when not dragging), track mouse, and offset the view slightly (e.g., ±0.05 units). Subtle life. Implementation: target offset = (mouseX-0.5)*0.12, (0.5-mouseY)*0.12; smooth: off += (target-off)*min(1,dt*3). View = translate(-offX, -offY, -3.2)? Moving the camera slightly. Also the light stays fixed → shading shifts subtly. Nice. Keep amplitude small (0.08). Also the background glow could shift slightly with the mouse — skip, keep it in the shader.
+
+But note: the axis widget projection assumes the camera is on the axis; with a small offset it's still approximately fine.
+
+Let me finalize the numbers:
+- base spin: x=0.16, y=0.42 rad/s → ~24°/s + tilt. Slow. ✓
+- Decay rate 0.5 → time constant 2s. Fling cap 11 rad/s (~630°/s).
+- Drag sensitivity 0.0042 rad/px → 300px drag = 1.26 rad ≈ 72°. Good.
+
+Rim: uRim = 0.22 + min(speed/5,1)*0.45.
+
+Background uGlow = min(speed/6,1)*0.8 → the glow behind the ball intensifies with speed. Nice feedback.
+
+Now let me write it all out. Also `precision highp float` in the fragment.
+
+Ball vertex shader: pass normal as mat3(uModel)*aPos — model is rotation only, so fine.
+
+Let me write the mulInto:
+
+```js
+function mulInto(o, a, b){
+  for(let c=0;c<4;c++){
+    const b0=b[c*4], b1=b[c*4+1], b2=b[c*4+2], b3=b[c*4+3];
+    o[c*4]   = a[0]*b0 + a[4]*b1 + a[8]*b2 + a[12]*b3;
+    o[c*4+1] = a[1]*b0 + a[5]*b1 + a[9]*b2 + a[13]*b3;
+    o[c*4+2] = a[2]*b0 + a[6]*b1 + a[10]*b2 + a[14]*b3;
+    o[c*4+3] = a[3]*b0 + a[7]*b1 + a[11]*b2 + a[15]*b3;
+  }
+}
+```
+
+Note: if o aliases a or b, in-place is dangerous. In applyRot I use separate temps: t1 = Rx, t2 = Ry; mulInto(t1, t1, t2) — o aliases a: is that safe? o[c*4] writes to t1[c*4..], and reads a[0..15] = t1. When c=0, we write t1[0..3] and then read a[4..] etc. for c=1 — but a[0..3] is already overwritten before it's used in c=1? For c=1, we read a[0],a[4],a[8],a[12] — a[0] was overwritten at c=0! Not safe. So use a third temp:
+
+```js
+function applyRot(rx, ry){
+  rotXInto(tA, rx);
+  rotYInto(tB, ry);
+  mulInto(tC, tA, tB);   // tC = Rx*Ry
+  mulInto(tA, tC, mR);   // tA = Rx*Ry*R
+  mR.set(tA);
+}
+```
+
+Safe.
+
+rotXInto:
+```js
+function rotXInto(o, a){ const c=Math.cos(a), s=Math.sin(a);
+  o[0]=1;o[1]=0;o[2]=0;o[3]=0; o[4]=0;o[5]=c;o[6]=s;o[7]=0; o[8]=0;o[9]=-s;o[10]=c;o[11]=0; o[12]=0;o[13]=0;o[14]=0;o[15]=1; }
+function rotYInto(o, a){ const c=Math.cos(a), s=Math.sin(a);
+  o[0]=c;o[1]=0;o[2]=-s;o[3]=0; o[4]=0;o[5]=1;o[6]=0;o[7]=0; o[8]=s;o[9]=0;o[10]=c;o[11]=0; o[12]=0;o[13]=0;o[14]=0;o[15]=1; }
+```
+
+View matrix: translate(-offX, -offY, -3.2):
+```js
+function viewInto(o, x, y, z){ o.set(ID); o[12]=-x; o[13]=-y; o[14]=-z; }
+```
+Wait, view = translate(-camPos). Camera at (offX, offY, 3.2) → view = translate(-offX, -offY, -3.2). So o[12] = -offX, etc. Let me just build it directly:
+
+```js
+view[12] = -off.x; view[13] = -off.y; view[14] = -3.2;
+```
+with view initialized to identity once.
+
+Light direction: normalize(0.55, 0.6, 0.55)? Let me pick (0.5, 0.65, 0.57) normalized. Compute in JS.
+
+Uniforms per frame: uProj (on resize), uView, uModel, uLightDir, uCamPos (off.x, off.y, 3.2), uRim.
+
+Now the HUD update:
+
+```js
+let hudT = 0;
+in frame: hudT += dt; if(hudT > 0.15){ hudT = 0; update text }
+```
+
+Axis widget every frame:
+```js
+const sp = Math.hypot(sx, sy);
+const ang = -Math.atan2(sy, sx);
+axisRot.style.transform = `rotate(${ang}rad)`;
+axisEl.style.opacity = (0.35 + Math.min(sp/4,1)*0.65).toFixed(2);
+```
+
+Wait, the arrow line is centered and symmetric — a line with a dot at the right end indicates direction. Rotating by ang makes the dot point in the axis direction. Good.
+
+Speed display: while dragging, use |fling|; otherwise |base+excess|.
+
+Edge: initial excess 0 → speed = hypot(0.16,0.42)=0.45 rad/s = 25.8°/s.
+
+Title text: "Kinetic Sphere". Overline: "WebGL2 · one file · zero libraries". Sub: "2,000 triangles · one directional light · drag to fling".
+
+Hmm, the hint already says drag. Sub: "2,000 triangles · single directional light · Lambert + rim". Fine.
+
+Also add `<meta charset>`.
+
+Let me double-check the bg shader star cell: p is in aspect-corrected space, range roughly [-aspect, aspect] x [-1,1]. p*26 → cells. fract(p*26.0)-0.5 is in [-0.5,0.5]. sp is in [-0.35,0.35]. sd is small near the star. smoothstep(0.06,0.0,sd) → 1 at center, 0 at 0.06. Star radius 0.06 cell ≈ 0.06/26 in p units ≈ 0.0023 → in pixels: p unit ≈ (height/2) px → 0.0023*540 ≈ 1.2px. Small star, good.
+
+Star brightness: (h-0.93)/0.07 max 1 * 0.35 * tw(0.2..1) → max ~0.35 added to a dark background. OK, subtle.
+
+Dither: hash returns 0..1, minus 0.5, times 1.5/255 ≈ ±0.003. Subtle. Good.
+
+Vignette: 1 - 0.45*smoothstep(0.55,1.75,d). At d=0: 1. At corner d≈1.8 (16:9: aspect 1.78, corner d = sqrt(1.78²+1)=2.06): smoothstep→1 → 0.55. OK.
+
+Glow: exp(-d²*2.2): at d=0.5 (ball edge ~0.5 in p units? Ball radius 1 at z=3.2, fov 45: half-height at origin = 3.2*tan(22.5°)=1.325 → ball edge at 1/1.325 = 0.755 in p units). So glow at ball edge: exp(-0.568*2.2)=exp(-1.25)=0.286 * 0.085 ≈ 0.024. Subtle halo. Good.
+
+uGlow term: exp(-d*1.1)*uGlow*color(0.02,0.05,0.07) — at uGlow 0.8: center 0.056 blue. Adds a speed-reactive halo. Good.
+
+Now, one more check: WebGL2 `layout(location=0)` in the vertex shader — supported in ES 3.0. ✓.
+
+drawElements with UNSIGNED_SHORT. ✓.
+
+Also set `gl.clearColor(0.012,0.016,0.028,1)` and clear each frame (bg overwrites anyway, but for safety).
+
+Antialias: true.
+
+Also handle `visibilitychange`? dt is clamped to 0.05, fine.
+
+Let me write the final HTML. Also make sure no markdown fences in the output — just the file contents.
+
+Let me write it out:
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kinetic Sphere — WebGL2</title>
+<style>
+  :root{
+    --ink:#dfe7f2;
+    --muted:#7d8ca3;
+    --cyan:#6fe3ff;
+    --amber:#ffb35c;
+    --mono:ui-monospace,"SF Mono","Cascadia Code",Menlo,Consolas,monospace;
+    --disp:"Avenir Next",Avenir,Futura,"Century Gothic","Segoe UI",system-ui,sans-serif;
+  }
+  *{margin:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{background:#04060c;overflow:hidden;font-family:var(--disp);color:var(--ink)}
+  #gl{position:fixed;inset:0;width:100%;height:100%;display:block;cursor:grab;touch-action:none}
+  body.dragging #gl{cursor:grabbing}
+  .hud{position:fixed;inset:0;pointer-events:none;padding:clamp(18px,3.4vw,44px);display:flex;flex-direction:column;justify-content:space-between}
+  .hud-top{display:flex;justify-content:space-between;align-items:flex-start;gap:24px}
+  .overline{font-family:var(--mono);font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:var(--cyan);opacity:.9;display:flex;align-items:center}
+  .dot{width:6px;height:6px;border-radius:50%;background:var(--cyan);box-shadow:0 0 8px var(--cyan);margin-right:10px;animation:pulse 2.4s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  h1{font-size:clamp(30px,4.6vw,58px);font-weight:800;letter-spacing:-.02em;line-height:.95;margin-top:12px;text-shadow:0 2px 34px rgba(0,0,0,.65)}
+  h1 em{font-style:normal;color:var(--amber)}
+  .sub{margin-top:10px;font-size:13px;font-weight:400;color:var(--muted);letter-spacing:.02em}
+  .axis{width:64px;height:64px;flex:none;border:1px solid rgba(140,170,210,.28);border-radius:50%;position:relative;transition:opacity .4s}
+  .axis .rot{position:absolute;inset:0}
+  .axis .line{position:absolute;left:50%;top:50%;width:38px;height:2px;margin:-1px 0 0 -19px;background:linear-gradient(90deg,rgba(111,227,255,0),var(--cyan));border-radius:2px}
+  .axis .line::after{content:"";position:absolute;right:-3px;top:-3px;width:8px;height:8px;border-radius:50%;background:var(--cyan);box-shadow:0 0 10px var(--cyan)}
+  .axis .lbl{position:absolute;left:50%;top:calc(100% + 9px);transform:translateX(-50%);font-family:var(--mono);font-size:9px;letter-spacing:.24em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+  .hud-bottom{display:flex;justify-content:space-between;align-items:flex-end;gap:24px}
+  .telemetry{font-family:var(--mono);font-size:11.5px;border-left:2px solid rgba(111,227,255,.55);padding-left:14px;display:grid;gap:7px}
+  .telemetry .row{display:flex;gap:14px;align-items:baseline}
+  .telemetry .k{color:var(--muted);letter-spacing:.2em;text-transform:uppercase;font-size:9.5px;min-width:52px}
+  .telemetry .v{color:var(--ink)}
+  .hint{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.06em;text-align:right;transition:opacity 1.4s ease}
+  .hint.seen{opacity:0}
+  #fallback{display:none;position:fixed;inset:0;place-items:center;font-family:var(--mono);font-size:13px;color:var(--muted);text-align:center;padding:24px;line-height:1.7}
+  @media (max-width:560px){ .axis{display:none} .sub{display:none} }
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div class="hud" aria-hidden="true">
+  <div class="hud-top">
+    <div>
+      <div class="overline"><span class="dot"></span>WebGL2 · one file · zero libraries</div>
+      <h1>Kinetic <em>Sphere</em></h1>
+      <p class="sub">2,000 triangles · one directional light · Lambert + rim</p>
+    </div>
+    <div class="axis" id="axis">
+      <div class="rot" id="axisRot"><div class="line"></div></div>
+      <span class="lbl">spin axis</span>
+    </div>
+  </div>
+  <div class="hud-bottom">
+    <div class="telemetry">
+      <div class="row"><span class="k">ω</span><span class="v" id="tSpeed">—</span></div>
+      <div class="row"><span class="k">state</span><span class="v" id="tState">idle</span></div>
+      <div class="row"><span class="k">tris</span><span class="v">2000</span></div>
+      <div class="row"><span class="k">fps</span><span class="v" id="tFps">—</span></div>
+    </div>
+    <div class="hint" id="hint">drag to fling — it settles back to a slow spin</div>
+  </div>
+</div>
+<div id="fallback">WebGL2 is not available in this browser.<br>Try a recent Chrome, Firefox, Edge or Safari.</div>
+<script>
+...
+</script>
+</body>
+</html>
+```
+
+Now the script. Let me write it in full:
+
+```js
+(() => {
+"use strict";
+const canvas = document.getElementById("gl");
+const gl = canvas.getContext("webgl2", { antialias: true, alpha: false });
+if (!gl) { document.getElementById("fallback").style.display = "grid"; return; }
+
+/* ---------- shaders ---------- */
+const BG_VS = `#version 300 es
+layout(location=0) in vec2 aPos;
+out vec2 vUv;
+void main(){ vUv = aPos*0.5+0.5; gl_Position = vec4(aPos,0.0,1.0); }`;
+
+const BG_FS = `#version 300 es
+precision highp float;
+in vec2 vUv;
+uniform vec2 uRes;
+uniform float uTime;
+uniform float uGlow;
+out vec4 fragColor;
+float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7)))*43758.5453); }
+void main(){
+  vec2 p = vUv*2.0-1.0;
+  p.x *= uRes.x/uRes.y;
+  float d = length(p);
+  float breathe = 0.92 + 0.08*sin(uTime*0.5);
+  vec3 col = vec3(0.014,0.018,0.030);
+  col += vec3(0.050,0.085,0.130) * exp(-d*d*2.2) * breathe;
+  col += vec3(0.020,0.050,0.070) * exp(-d*1.1) * uGlow;
+  vec2 cell = floor(p*26.0);
+  float h = hash(cell);
+  if (h > 0.93){
+    vec2 sp = (vec2(hash(cell+7.31), hash(cell+3.70)) - 0.5)*0.7;
+    float sd = length(fract(p*26.0)-0.5 - sp);
+    float tw = 0.6 + 0.4*sin(uTime*(0.4+h) + h*40.0);
+    col += vec3(0.55,0.70,0.95) * smoothstep(0.06,0.0,sd) * ((h-0.93)/0.07) * 0.35 * tw;
+  }
+  col *= 1.0 - 0.45*smoothstep(0.55,1.75,d);
+  col += (hash(gl_FragCoord.xy + fract(uTime)) - 0.5) * (1.5/255.0);
+  fragColor = vec4(col,1.0);
+}`;
+
+const BALL_VS = `#version 300 es
+layout(location=0) in vec3 aPos;
+uniform mat4 uModel, uView, uProj;
+out vec3 vNormal;
+out vec3 vWorld;
+void main(){
+  vec4 w = uModel * vec4(aPos,1.0);
+  vWorld = w.xyz;
+  vNormal = mat3(uModel) * aPos;
+  gl_Position = uProj * uView * w;
+}`;
+
+const BALL_FS = `#version 300 es
+precision highp float;
+in vec3 vNormal;
+in vec3 vWorld;
+uniform vec3 uLightDir;
+uniform vec3 uCamPos;
+uniform float uRim;
+out vec4 fragColor;
+void main(){
+  vec3 N = normalize(vNormal);
+  vec3 L = normalize(uLightDir);
+  vec3 V = normalize(uCamPos - vWorld);
+  float ndl = dot(N,L);
+  float diff = clamp(ndl, 0.0, 1.0);
+  float wrap = clamp((ndl + 0.18)/1.18, 0.0, 1.0);
+  vec3 H = normalize(L + V);
+  float spec = pow(clamp(dot(N,H),0.0,1.0), 60.0);
+  float fres = pow(1.0 - clamp(dot(N,V),0.0,1.0), 3.0);
+  vec3 base = vec3(0.94,0.66,0.36);
+  vec3 light = vec3(1.00,0.97,0.92);
+  vec3 col = base * (vec3(0.045,0.060,0.100) + light * diff * 1.05);
+  col += base * light * wrap * 0.18;
+  col += vec3(1.00,0.98,0.95) * spec * 0.55;
+  col += vec3(0.35,0.75,1.00) * fres * uRim;
+  col = 1.0 - exp(-col * 1.6);
+  fragColor = vec4(col,1.0);
+}`;
+
+function compile(type, src){
+  const s = gl.createShader(type);
+  gl.shaderSource(s, src);
+  gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+  return s;
+}
+function program(vs, fs){
+  const p = gl.createProgram();
+  gl.attachShader(p, compile(gl.VERTEX_SHADER, vs));
+  gl.attachShader(p, compile(gl.FRAGMENT_SHADER, fs));
+  gl.linkProgram(p);
+  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+  return p;
+}
+
+const bgProg = program(BG_VS, BG_FS);
+const ballProg = program(BALL_VS, BALL_FS);
+
+const U = {
+  bgRes: gl.getUniformLocation(bgProg, "uRes"),
+  bgTime: gl.getUniformLocation(bgProg, "uTime"),
+  bgGlow: gl.getUniformLocation(bgProg, "uGlow"),
+  m: gl.getUniformLocation(ballProg, "uModel"),
+  v: gl.getUniformLocation(ballProg, "uView"),
+  p: gl.getUniformLocation(ballProg, "uProj"),
+  light: gl.getUniformLocation(ballProg, "uLightDir"),
+  cam: gl.getUniformLocation(ballProg, "uCamPos"),
+  rim: gl.getUniformLocation(ballProg, "uRim"),
+};
+
+/* ---------- background quad ---------- */
+const bgVAO = gl.createVertexArray();
+gl.bindVertexArray(bgVAO);
+const bgBuf = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, bgBuf);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 3,-1, -1,3]), gl.STATIC_DRAW);
+gl.enableVertexAttribArray(0);
+gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+
+/* ---------- sphere: 20 lat x 50 lon = 2000 triangles ---------- */
+const LAT = 20, LON = 50;
+{
+  const verts = new Float32Array((LAT+1)*LON*3);
+  let k = 0;
+  for (let i = 0; i <= LAT; i++){
+    const th = i/LAT * Math.PI, st = Math.sin(th), ct = Math.cos(th);
+    for (let j = 0; j < LON; j++){
+      const ph = j/LON * Math.PI*2;
+      verts[k++] = st*Math.cos(ph);
+      verts[k++] = ct;
+      verts[k++] = st*Math.sin(ph);
+    }
+  }
+  const idx = new Uint16Array(LAT*LON*6);
+  let n = 0;
+  for (let i = 0; i < LAT; i++){
+    for (let j = 0; j < LON; j++){
+      const a = i*LON + j, b = i*LON + (j+1)%LON;
+      const c = (i+1)*LON + j, d = (i+1)*LON + (j+1)%LON;
+      idx[n++]=a; idx[n++]=b; idx[n++]=c;
+      idx[n++]=b; idx[n++]=d; idx[n++]=c;
+    }
+  }
+  const ballVAO = gl.createVertexArray();
+  gl.bindVertexArray(ballVAO);
+  const vbo = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+  gl.bufferData(gl.ARRAY_BUFFER, verts, gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0);
+  gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+  const ibo = gl.createBuffer();
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo);
+  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, idx, gl.STATIC_DRAW);
+  window.__triCount = idx.length/3; // 2000
+}
+```
+
+Hmm, window.__triCount is unnecessary; the HUD hardcodes 2000. Remove.
+
+Matrices:
+
+```js
+const ID = new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]);
+const model = ID.slice();
+const view = ID.slice();
+let proj = ID.slice();
+const tA = new Float32Array(16), tB = new Float32Array(16), tC = new Float32Array(16);
+
+function rotXInto(o,a){ const c=Math.cos(a),s=Math.sin(a);
+  o[0]=1;o[1]=0;o[2]=0;o[3]=0; o[4]=0;o[5]=c;o[6]=s;o[7]=0;
+  o[8]=0;o[9]=-s;o[10]=c;o[11]=0; o[12]=0;o[13]=0;o[14]=0;o[15]=1; }
+function rotYInto(o,a){ const c=Math.cos(a),s=Math.sin(a);
+  o[0]=c;o[1]=0;o[2]=-s;o[3]=0; o[4]=0;o[5]=1;o[6]=0;o[7]=0;
+  o[8]=s;o[9]=0;o[10]=c;o[11]=0; o[12]=0;o[13]=0;o[14]=0;o[15]=1; }
+function mulInto(o,a,b){
+  for(let c=0;c<4;c++){
+    const b0=b[c*4],b1=b[c*4+1],b2=b[c*4+2],b3=b[c*4+3];
+    o[c*4]  =a[0]*b0+a[4]*b1+a[8]*b2+a[12]*b3;
+    o[c*4+1]=a[1]*b0+a[5]*b1+a[9]*b2+a[13]*b3;
+    o[c*4+2]=a[2]*b0+a[6]*b1+a[10]*b2+a[14]*b3;
+    o[c*4+3]=a[3]*b0+a[7]*b1+a[11]*b2+a[15]*b3;
+  }
+}
+function applyRot(rx,ry){
+  rotXInto(tA,rx); rotYInto(tB,ry);
+  mulInto(tC,tA,tB);
+  mulInto(tA,tC,model);
+  model.set(tA);
+}
+function perspective(o, fovy, aspect, near, far){
+  const f = 1/Math.tan(fovy/2);
+  o.fill(0);
+  o[0]=f/aspect; o[5]=f; o[10]=(far+near)/(near-far); o[11]=-1; o[14]=2*far*near/(near-far);
+}
+```
+
+Light:
+
+```js
+const lightDir = (() => { const v=[0.5,0.65,0.57], l=Math.hypot(...v); return v.map(x=>x/l); })();
+```
+
+State:
+
+```js
+const base = { x: 0.16, y: 0.42 };
+let excess = { x: 0, y: 0 };
+let fling = { x: 0, y: 0 };
+let dragging = false, lastX=0, lastY=0, lastT=0;
+const off = { x:0, y:0 }, offT = { x:0, y:0 };
+let fps = 60, hudT = 0;
+
+const tSpeed = document.getElementById("tSpeed");
+const tState = document.getElementById("tState");
+const tFps = document.getElementById("tFps");
+const axisEl = document.getElementById("axis");
+const axisRot = document.getElementById("axisRot");
+const hint = document.getElementById("hint");
+```
+
+Pointer:
+
+```js
+const SENS = 0.0042;
+canvas.addEventListener("pointerdown", e => {
+  dragging = true;
+  canvas.setPointerCapture(e.pointerId);
+  lastX = e.clientX; lastY = e.clientY; lastT = performance.now();
+  fling.x = 0; fling.y = 0;
+  document.body.classList.add("dragging");
+  hint.classList.add("seen");
+});
+canvas.addEventListener("pointermove", e => {
+  offT.x = (e.clientX/innerWidth - 0.5) * 0.10;
+  offT.y = (0.5 - e.clientY/innerHeight) * 0.10;
+  if (!dragging) return;
+  const now = performance.now();
+  const dtm = Math.max((now - lastT)/1000, 0.001);
+  const dx = e.clientX - lastX, dy = e.clientY - lastY;
+  applyRot(dy*SENS, dx*SENS);
+  fling.x = fling.x*0.55 + (dy/dtm)*SENS*0.45;
+  fling.y = fling.y*0.55 + (dx/dtm)*SENS*0.45;
+  lastX = e.clientX; lastY = e.clientY; lastT = now;
+});
+function endDrag(){
+  if (!dragging) return;
+  dragging = false;
+  document.body.classList.remove("dragging");
+  const m = Math.hypot(fling.x, fling.y), cap = 11;
+  const s = m > cap ? cap/m : 1;
+  excess.x = fling.x*s; excess.y = fling.y*s;
+}
+canvas.addEventListener("pointerup", endDrag);
+canvas.addEventListener("pointercancel", endDrag);
+```
+
+Wait: offT is the camera offset — moving the mouse right should move the camera right (ball appears to shift left) — parallax. off.x positive → view translate -off.x → camera at +x → ball appears shifted left. Either way, subtle. Fine.
+
+Resize:
+
+```js
+function resize(){
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  canvas.width = Math.max(1, Math.round(innerWidth*dpr));
+  canvas.height = Math.max(1, Math.round(innerHeight*dpr));
+  gl.viewport(0,0,canvas.width,canvas.height);
+  perspective(proj, 45*Math.PI/180, canvas.width/canvas.height, 0.1, 20);
+}
+addEventListener("resize", resize);
+resize();
+```
+
+Loop:
+
+```js
+gl.enable(gl.DEPTH_TEST);
+gl.enable(gl.CULL_FACE);
+gl.clearColor(0.014,0.018,0.030,1);
+
+let last = performance.now();
+function frame(now){
+  const dt = Math.min((now-last)/1000, 0.05);
+  last = now;
+  const t = now/1000;
+
+  const k = Math.exp(-dt*0.5);
+  excess.x *= k; excess.y *= k;
+  const sx = base.x + excess.x, sy = base.y + excess.y;
+  if (!dragging) applyRot(sx*dt, sy*dt);
+
+  const sm = Math.min(1, dt*3);
+  off.x += (offT.x - off.x)*sm;
+  off.y += (offT.y - off.y)*sm;
+  view[12] = -off.x; view[13] = -off.y; view[14] = -3.2;
+
+  const speed = Math.hypot(sx, sy);
+  const rim = 0.22 + Math.min(speed/5, 1)*0.45;
+  const glow = Math.min(speed/6, 1)*0.8;
+
+  // background
+  gl.disable(gl.DEPTH_TEST);
+  gl.depthMask(false);
+  gl.useProgram(bgProg);
+  gl.uniform2f(U.bgRes, canvas.width, canvas.height);
+  gl.uniform1f(U.bgTime, t);
+  gl.uniform1f(U.bgGlow, glow);
+  gl.bindVertexArray(bgVAO);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+  // ball
+  gl.enable(gl.DEPTH_TEST);
+  gl.depthMask(true);
+  gl.useProgram(ballProg);
+  gl.uniformMatrix4fv(U.m, false, model);
+  gl.uniformMatrix4fv(U.v, false, view);
+  gl.uniformMatrix4fv(U.p, false, proj);
+  gl.uniform3fv(U.light, lightDir);
+  gl.uniform3f(U.cam, off.x, off.y, 3.2);
+  gl.uniform1f(U.rim, rim);
+  gl.bindVertexArray(ballVAO);
+  gl.drawElements(gl.TRIANGLES, LAT*LON*6, gl.UNSIGNED_SHORT, 0);
+
+  // HUD
+  const sp = dragging ? Math.hypot(fling.x, fling.y) : speed;
+  axisRot.style.transform = `rotate(${-Math.atan2(sy, sx)}rad)`;
+  axisEl.style.opacity = (0.35 + Math.min(sp/4, 1)*0.65).toFixed(2);
+  fps = fps*0.92 + (1/Math.max(dt,1e-4))*0.08;
+  hudT += dt;
+  if (hudT > 0.15){
+    hudT = 0;
+    tSpeed.textContent = (sp*180/Math.PI).toFixed(0) + "°/s";
+    tFps.textContent = Math.round(fps);
+    tState.textContent = dragging ? "dragging" : (Math.hypot(excess.x,excess.y) > 0.3 ? "flinging" : "idle");
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+})();
+```
+
+Wait: view is initialized as ID.slice() — view[12..14] set each frame, others remain identity. ✓.
+
+One issue: `view` is a Float32Array from ID.slice() — fine.
+
+Another: while dragging, the ball only rotates via pointermove; if the pointer is stationary while pressed, the ball freezes — acceptable, feels like holding.
+
+Also, the ω display while dragging uses fling, which is 0 until the first move — fine.
+
+Check: `gl.uniform3fv(U.light, lightDir)` — lightDir is an array from map → regular Array, fine.
+
+Potential issue: `canvas.setPointerCapture` — pointermove events then target the canvas even outside. Good.
+
+Also, pointermove on canvas fires only when the pointer is over the canvas — since it's fullscreen, always. But the HUD is pointer-events none, so the canvas receives events. ✓.
+
+Touch: pointer events cover it; touch-action none prevents scroll. ✓.
+
+Now, the "roughly 2,000" triangle requirement: exactly 2000.
+
+One more consideration: "shade with a single directional light so curvature is visible" — my shading has ambient + wrap + rim + specular, all from the same single directional light (ambient is a constant, not a light). That's fine and standard; the primary term is the directional diffuse. Good.
+
+Let me also make sure the ball is "centered in view" — yes, at origin, camera on axis.
+
+Let me write the final file. Keep the code clean, lightly commented.
+
+CSS details:
+
+```css
+:root{
+  --ink:#dfe7f2; --muted:#7d8ca3; --cyan:#6fe3ff; --amber:#ffb35c;
+  --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+  --disp: "Avenir Next", Avenir, Futura, "Century Gothic", "Segoe UI", system-ui, sans-serif;
+}
+*{ margin:0; box-sizing:border-box; }
+html,body{ height:100%; }
+body{ background:#04060c; overflow:hidden; font-family:var(--disp); color:var(--ink); }
+canvas#gl{ position:fixed; inset:0; width:100%; height:100%; display:block; cursor:grab; touch-action:none; }
+body.dragging canvas#gl{ cursor:grabbing; }
+.hud{ position:fixed; inset:0; pointer-events:none; padding:clamp(18px,3.4vw,44px); display:flex; flex-direction:column; justify-content:space-between; }
+.hud-top{ display:flex; justify-content:space-between; align-items:flex-start; gap:20px; }
+.overline{ font-family:var(--mono); font-size:10px; letter-spacing:.28em; text-transform:uppercase; color:var(--cyan); opacity:.85; }
+h1{ font-size:clamp(30px,4.6vw,58px); font-weight:800; letter-spacing:-.02em; line-height:.95; margin-top:10px; text-shadow:0 2px 30px rgba(0,0,0,.6); }
+h1 em{ font-style:normal; color:var(--amber); }
+.sub{ margin-top:10px; font-size:13px; color:var(--muted); font-weight:400; letter-spacing:.01em; }
+```
+
+Title: "Kinetic Sphere" — maybe style "Sphere" in amber. Or the title "SPIN / 2000"? Let me do: h1 "Kinetic <em>Sphere</em>".
+
+Axis widget:
+
+```css
+.axis{ width:64px; height:64px; border:1px solid rgba(140,170,210,.25); border-radius:50%; position:relative; flex:none; }
+.axis .rot{ position:absolute; inset:0; }
+.axis .line{ position:absolute; left:50%; top:50%; width:38px; height:2px; margin:-1px 0 0 -19px; background:linear-gradient(90deg, rgba(111,227,255,0), var(--cyan)); border-radius:2px; }
+.axis .line::after{ content:""; position:absolute; right:-3px; top:-3px; width:8px; height:8px; border-radius:50%; background:var(--cyan); box-shadow:0 0 10px var(--cyan); }
+.axis .lbl{ position:absolute; left:50%; top:calc(100% + 8px); transform:translateX(-50%); font-family:var(--mono); font-size:9px; letter-spacing:.22em; text-transform:uppercase; color:var(--muted); white-space:nowrap; }
+```
+
+Telemetry:
+
+```css
+.hud-bottom{ display:flex; justify-content:space-between; align-items:flex-end; gap:20px; }
+.telemetry{ font-family:var(--mono); font-size:11.5px; border-left:2px solid rgba(111,227,255,.5); padding-left:14px; display:grid; gap:6px; }
+.telemetry .row{ display:flex; gap:12px; }
+.telemetry .k{ color:var(--muted); letter-spacing:.18em; text-transform:uppercase; font-size:9.5px; padding-top:2px; }
+.telemetry .v{ color:var(--ink); min-width:86px; }
+.hint{ font-family:var(--mono); font-size:11px; color:var(--muted); letter-spacing:.06em; transition:opacity 1.2s ease; text-align:right; }
+.hint.seen{ opacity:0; }
+```
+
+Maybe add a small pulse animation on the overline dot: a "●" that pulses. Add `.overline::before { content:""; ... }`? Let me add a live dot: `<span class="dot"></span>` with a pulse keyframe. Nice touch.
+
+```css
+.dot{ display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--cyan); margin-right:8px; box-shadow:0 0 8px var(--cyan); animation:pulse 2.4s ease-in-out infinite; vertical-align:1px; }
+@keyframes pulse{ 0%,100%{opacity:1} 50%{opacity:.35} }
+```
+
+Fallback:
+
+```css
+#fallback{ display:none; position:fixed; inset:0; place-items:center; font-family:var(--mono); color:var(--muted); text-align:center; padding:24px; }
+```
+
+Now let me write the JS in full. Also guard: if gl is null, skip everything.
+
+Uniform locations cached.
+
+Let me write the shader sources as template strings.
+
+One concern: `hash(gl_FragCoord.xy + fract(uTime))` — fract(uTime) changes every frame → dither pattern changes every frame, that's fine (adds a subtle film grain). Actually, per-frame random dither = film grain, might be a bit noisy; amplitude 1.5/255 is very subtle. OK.
+
+Star twinkle uses uTime — fine.
+
+Also add a slight parallax: the ball shifts a few px opposite to the mouse? That's a nice micro-interaction: on pointermove (even when not dragging), track mouse, and offset the view slightly (e.g., ±0.05 units). Subtle life. Implementation: target offset = (mouseX-0.5)*0.12, (0.5-mouseY)*0.12; smooth: off += (target-off)*min(1,dt*3). View = translate(-offX, -offY, -3.2)? Moving the camera slightly. Also the light stays fixed → shading shifts subtly. Nice. Keep amplitude small (0.08). Also the background glow could shift slightly with the mouse — skip, keep it in the shader.
+
+But note: the axis widget projection assumes the camera is on the axis; with a small offset it's still approximately fine.
+
+Let me finalize the numbers:
+- base spin: x=0.16, y=0.42 rad/s → ~24°/s + tilt. Slow. ✓
+- Decay rate 0.5 → time constant 2s. Fling cap 11 rad/s (~630°/s).
+- Drag sensitivity 0.0042 rad/px → 300px drag = 1.26 rad ≈ 72°. Good.
+
+Rim: uRim = 0.22 + min(speed/5,1)*0.45.
+
+Background uGlow = min(speed/6,1)*0.8 → the glow behind the ball intensifies with speed. Nice feedback.
+
+Now let me write it all out. Also `precision highp float` in the fragment.
+
+Ball vertex shader: pass normal as mat3(uModel)*aPos — model is rotation only, so fine.
+
+Let me write the mulInto:
+
+```js
+function mulInto(o, a, b){
+  for(let c=0;c<4;c++){
+    const b0=b[c*4], b1=b[c*4+1], b2=b[c*4+2], b3=b[c*4+3];
+    o[c*4]   = a[0]*b0 + a[4]*b1 + a[8]*b2 + a[12]*b3;
+    o[c*4+1] = a[1]*b0 + a[

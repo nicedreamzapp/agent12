@@ -1,0 +1,14 @@
+{
+ "task": "furball",
+ "label": "qwen3.8-27b-dflash-medium",
+ "gen_seconds": 311.4,
+ "completion_tokens": 9968,
+ "tok_s": 32.0,
+ "max_tokens": 32768,
+ "chars": 10979,
+ "complete": true,
+ "model": "lmstudio-community/Qwen3.8-27B-MLX-8bit",
+ "drafter": "incoai/Qwen3.8-27B-DFlash2",
+ "rounds": 2530,
+ "reasoning_effort": "medium"
+}

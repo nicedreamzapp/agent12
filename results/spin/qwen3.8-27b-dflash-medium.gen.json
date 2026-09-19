@@ -1,0 +1,14 @@
+{
+ "task": "spin",
+ "label": "qwen3.8-27b-dflash-medium",
+ "gen_seconds": 61.6,
+ "completion_tokens": 3262,
+ "tok_s": 53.0,
+ "max_tokens": 32768,
+ "chars": 8508,
+ "complete": true,
+ "model": "lmstudio-community/Qwen3.8-27B-MLX-8bit",
+ "drafter": "incoai/Qwen3.8-27B-DFlash2",
+ "rounds": 606,
+ "reasoning_effort": "medium"
+}

@@ -1,0 +1,1591 @@
+The user is asking for a single self-contained HTML file containing a polished, playable Breakout game. Requirements:
+
+1. Single file, vanilla JS, no libraries, no CDN, no external assets. Inline CSS and JS. One canvas filling the window.
+2. Paddle controlled by both mouse and left/right arrow keys.
+3. Ball physics where the bounce angle depends on where the ball hits the paddle.
+4. 6 rows of colorful bricks. Top 2 rows take 2 hits.
+5. Particle burst and brief screen shake when a brick breaks, glowing trail behind the ball.
+6. Score, 3 lives, level clear and game over screens.
+7. Spacebar launches the ball, restarts after game over.
+8. Juicy and alive.
+
+Output only the HTML file contents. No explanation, no markdown fences.
+
+Design considerations: I want it to feel alive and polished. Let me think about the aesthetic:
+
+- Arcade cabinet vibe: deep space/retro arcade. I'll use a rich multi-color palette — 6 rows of different colors (each row a different hue), a deep blue-purple night background with a subtle starfield/grid, and a warm amber/gold UI.
+- Typography: distinctive display face + readable body. No external fonts allowed (no CDN, no external assets). So I have to use system fonts. I can use a font stack: for display, something like "Impact, 'Arial Black', sans-serif" or a monospace stack for the arcade feel: "'Courier New', monospace" — actually, a good arcade feel: use a bold condensed stack for the title, monospace for the score. Or I could draw the title on the canvas with custom lettering... Simpler: use CSS font stacks. Display: `Impact, 'Haettenschweiler', 'Arial Narrow Bold', sans-serif` — gives that arcade poster feel. Body/HUD: `'Segoe UI', system-ui` or monospace `'Consolas', 'Menlo', monospace` for the score digits. That's a good pairing: Impact display + monospace HUD.
+
+Actually, since everything is drawn on one canvas, the HUD can be drawn on the canvas with those font stacks. The requirement says "draw everything on one canvas filling the window." So the score, lives, screens — all on the canvas. OK.
+
+Game architecture:
+
+- Canvas fills the window, handles resize (devicePixelRatio for crispness).
+- Game states: 'ready' (ball on paddle, waiting for space), 'playing', 'levelcomplete', 'gameover', and maybe 'win' after the final level? The requirement says level clear and game over screens. I can have multiple levels — level clear screen, then next level. Let's do 3 levels with different brick layouts? The requirement says 6 rows of colorful bricks, top 2 rows take 2 hits. I can keep 6 rows per level but vary the pattern/color scheme per level, and increase ball speed per level. Level clear screen shows "LEVEL X CLEARED" and advances on space. After the final level, a "YOU WIN" screen (which is a variant of level clear). Let's do 3 levels.
+
+Actually, to be safe and match the requirement exactly: 6 rows of colorful bricks, top 2 rows take 2 hits. Keep that for all levels, vary the color palette and speed, and maybe vary the pattern a bit (e.g., level 2 has a checkerboard gap? but the requirement says 6 rows of bricks — keep 6 full rows, vary the palette and speed). Keep it simple: same layout, different palette + speed + maybe a moving paddle? No, keep it clean.
+
+Physics:
+- Ball position, velocity. Speed increases slightly per paddle hit, capped.
+- Paddle bounce: relative intersection = (ball.x - paddle.x) / (paddle.width/2), clamped to [-1,1]; angle = relative * maxAngle (e.g., 60° from vertical). vx = speed * sin(angle), vy = -speed * cos(angle).
+- Wall collision: left/right/top. Bottom: lose a life.
+- Brick collision: AABB vs circle, determine the side by penetration depth, reflect. Handle multiple bricks in one frame — process one at a time, or find the closest. Simple approach: iterate bricks, check collision, resolve, break out of the loop (one brick per frame) to avoid weird double bounces.
+
+Bricks:
+- 6 rows, N columns based on width (e.g., 10 columns). Compute layout on resize? Better: fixed logical game area. Hmm, canvas fills the window; the game field can be the whole canvas with a HUD area at the top. Brick layout computed from canvas width at level start; on resize, recompute brick positions proportionally? Simpler: define a fixed logical coordinate system (e.g., 960x600 game area) and scale the canvas rendering to fit the window while preserving aspect ratio, letterboxed with a background. That's cleaner and keeps physics consistent. But "canvas fills the window" — the canvas element fills the window; I can render a scaled game world inside it, with the background filling the rest. That satisfies the requirement.
+
+Actually, let me do this: canvas = window size (with DPR). Compute a scale that fits a 960x640 world with margins, centered. Draw a background (starfield, grid) across the whole canvas, then draw the game world scaled. Screen shake applies to the world transform.
+
+Hmm, but the mouse controls the paddle — I need to convert mouse coordinates to world coordinates. Doable: worldX = (mouseX - offsetX)/scale.
+
+Alternatively, make the game responsive: bricks computed from the actual canvas width. On resize, recompute brick grid positions (keep hit state). That's also fine and avoids letterboxing. But the ball physics in pixels would change with window size... I can normalize speed relative to height. Letterboxed fixed world is more robust and standard. Let's go with a fixed world 960x640, scaled to fit, with a nice background filling the whole window (so the letterbox isn't empty — the starfield continues, and maybe a subtle vignette).
+
+Actually, let me reconsider: a full-bleed responsive layout might feel more "alive" on wide screens. But the fixed world guarantees consistent gameplay. Going with fixed world + full-bleed ambient background. The area outside the playfield can have a subtle border/frame — like an arcade cabinet bezel. I can draw a rounded frame around the playfield with a glow. That's a nice touch: the playfield is a "cabinet screen."
+
+Hmm, but the requirement: "draw everything on one canvas filling the window" — yes, one canvas, fills the window. Good.
+
+Juice elements:
+- Ball trail: store recent positions, draw fading circles with additive glow (globalCompositeOperation 'lighter').
+- Particles: on brick break, spawn 12-20 particles in the brick's color, with gravity, fade, and rotation (small rectangles). Also small sparks on paddle hit, and a small puff on wall hit.
+- Screen shake: magnitude decays; on brick break, shake ~6px for ~150ms; on life loss, bigger shake.
+- Paddle: squash & stretch on hit (scaleY briefly), glow.
+- Bricks: on hit (2-hit bricks), flash white, crack overlay on the first hit, small shake of the brick (offset wobble). On break, a brief "pop" scale? The brick disappears; particles cover it.
+- Floating score text: "+50" rises and fades at the brick position.
+- Combo system? I can add a combo multiplier for consecutive paddle hits without touching the floor — adds juice and depth. Show "COMBO x3" text. Keep it simple: combo increases per paddle hit, resets on life loss; score multiplier = combo? Might complicate scoring. Let me add a light combo: consecutive brick breaks without the ball touching the paddle increase a multiplier (x1..x5), shown near the score. Actually, let's do this: each brick = base points by row (top rows worth more). Combo: brick breaks within the same "rally" (between paddle hits) increase a multiplier. Show a small "×N" indicator. That's juicy. Keep the code manageable.
+
+- Sound: WebAudio API beeps! No external assets needed — synthesize. That adds a lot of juice. Paddle hit: low square blip; wall: soft tick; brick: pitch rises with combo; life loss: descending tone; level clear: arpeggio; game over: sad tone. Add a mute toggle (M key). Need to handle AudioContext resume on first user gesture. This is a big win for "juicy and alive." Let's include it.
+
+- Background: slowly drifting starfield + subtle parallax; maybe a faint grid. Also a soft radial glow behind the playfield.
+
+- Paddle: gradient, rounded, with a glow, and maybe a small "engine" light.
+
+- Ball: white core with colored glow (color shifts with speed or combo).
+
+HUD:
+- Top bar: SCORE (left), LEVEL (center), LIVES (right, drawn as small ball icons or hearts). Combo indicator.
+- Fonts: display "Impact" for big text; monospace for numbers.
+
+Screens:
+- Start screen? The requirement doesn't explicitly ask for a start screen, but "level clear and game over screens" are required. A start screen is nice: "BREAKOUT — press SPACE to start." Actually, the ready state (ball on paddle, "press SPACE to launch") can double as the start. Let me do this: initial state 'ready' with a title overlay "BREAKOUT" and "SPACE to launch." After game over, "GAME OVER — final score — SPACE to restart." Level clear: "LEVEL X CLEAR — bonus +500 — SPACE for next level." After the final level: "YOU WIN."
+
+Lives: 3, drawn as small glowing balls.
+
+Controls:
+- Mouse move: paddle follows mouse x (in world coordinates).
+- Arrow keys: move paddle at a constant speed (e.g., 900 px/s), with acceleration? Constant speed is fine; hold both? Left takes priority or net.
+- Space: launch / advance screen / restart.
+- M: mute.
+- Prevent page scroll on space/arrows: e.preventDefault().
+
+Ball launch: from the top of the paddle, at a slight random angle.
+
+Ball stuck to paddle in ready state: ball follows the paddle.
+
+Level clear: when all bricks are destroyed (or all destructible bricks). Award a bonus. Show the screen; space → next level (reset bricks, ball to paddle, speed up).
+
+Game over: lives = 0. Show final score, best score (localStorage? "no external assets" — localStorage is fine, it's not an asset). Save high score in localStorage. Show "BEST" in the HUD. Nice touch.
+
+Now, code structure:
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Breakout</title>
+<style>
+  html,body{margin:0;height:100%;overflow:hidden;background:#0b0e1a;}
+  canvas{display:block;width:100vw;height:100vh;cursor:none;}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+// ... game
+</script>
+</body>
+</html>
+```
+
+Cursor: hide the cursor over the canvas since the mouse controls the paddle? The paddle is at the bottom, the mouse is anywhere — hiding the cursor is fine and arcade-like. But on the game over screen, the cursor is hidden and there's no pointer... it's keyboard-driven anyway. Hide the cursor (cursor:none) — the ball/paddle is the feedback. Actually, maybe keep the cursor visible? Hiding feels more game-like. Let's hide it.
+
+World: W=960, H=640.
+
+Layout:
+- HUD height ~64 at the top of the world.
+- Brick area: top offset ~100, 6 rows, brick height 26, gap 6. Columns: 10. Side margins: compute brickW = (W - 2*margin - (cols-1)*gap)/cols, margin ~48.
+- Paddle: y = H - 56, width 110 (shrinks slightly per level? Classic Breakout shrinks the paddle — nice difficulty ramp: level 1: 120, level 2: 104, level 3: 92). Height 16, rounded.
+- Ball radius 7.
+
+Ball speed: base 420 px/s, +40 per level, +8 per paddle hit, cap ~720.
+
+Brick colors per row (level 1 palette):
+Row 0: #ff5d5d (red) — 2 hits
+Row 1: #ffb14d (orange) — 2 hits
+Row 2: #ffe14d (yellow)
+Row 3: #6ee76e? Let me pick a cohesive arcade palette:
+- #ff4d6d (pinkish red)
+- #ff9f43 (orange)
+- #ffd93d (yellow)
+- #4dd47a? Hmm.
+Classic Breakout colors: red, orange, yellow, green, blue, purple. Let's use:
+Row 0: #ff5252
+Row 1: #ff9f43
+Row 2: #ffe066
+Row 3: #51e08a? or #2ed573
+Row 4: #38b6ff / #45c4ff
+Row 5: #b06bff / #a55eea
+
+Level 2 palette: cyan/teal/mint... Level 3: hot magenta/gold... Let me define palettes:
+L1: ['#ff5252','#ff9f43','#ffe066','#2ed573','#3fa7ff','#b06bff']
+L2: ['#ff6b9d','#ffa94d','#ffd43b','#69db7c','#38d9e0'? ...] hmm, let me make it:
+L2: ['#f783ac','#ffd43b','#63e6be','#4dabf7','#9775fa','#ff8787']
+L3: ['#ff4d4d','#ff7847','#ffd60a','#80ed99','#48cae4','#c77dff']
+
+Good enough — colorful.
+
+Brick rendering: rounded rectangle with a vertical gradient (lighter on top), a subtle inner highlight line, and a glow shadow. 2-hit bricks: draw with a slightly different look — maybe a metallic/striped top, or a "shield" look: brighter with a double border; after the first hit, show a crack (draw a crack line) and a darker tone. Cracks: precompute a random crack pattern per brick? Simpler: draw 2-3 jagged lines from a hit point. Store brick.crack = true and draw a deterministic pseudo-random crack based on the brick's index.
+
+Brick hit feedback: brick.flash timer (white overlay), brick.wobble (offset oscillation).
+
+Particles: array of {x,y,vx,vy,life,maxLife,size,color,rot,vr,shape}. Update with gravity 900, fade. Draw as small rotating rectangles or circles. Use 'lighter' composite for glow particles.
+
+Trail: array of {x,y,life}. Push ball position each frame (or every other frame). Draw circles with decreasing radius and alpha, 'lighter'.
+
+Floating text: {x,y,text,life,color,size}.
+
+Screen shake: shake = {t:0, mag:0}. On trigger: shake.t = duration, shake.mag = m. Each frame, offset = random within mag * (t/duration). Apply to world transform.
+
+Paddle squash: paddle.squash timer; on hit, squash=1, decays; draw with scaleY = 1 - 0.35*squash, scaleX = 1 + 0.25*squash.
+
+Ball glow color: base white; hue shifts with combo? Ball color = white core + colored halo (color = current combo color or level accent).
+
+Combo: comboCount increments per brick break during a rally (reset on paddle hit? or on life loss?). Classic juice: multiplier increases per brick broken without touching the paddle. Let's do: on paddle hit, combo=0; on brick break, combo++, multiplier = min(combo, 8)? Score = base * (1 + (combo-1)*0.5)? Keep integers: base points by row: top row 50, then 40,30,20,15,10? Actually, top rows are tougher (2 hits) so worth more: row points = [60,50,40,30,20,10]. Multiplier = 1 + floor(combo/3)? Simpler: multiplier = min(1+combo, 5)? Hmm.
+
+Let me do: combo counts consecutive brick breaks since the last paddle touch. Multiplier = min(combo, 5) but starts at 1: mult = Math.min(combo, 5). Score gained = rowPoints * mult. Show "×N" when N>1, and floating text shows the total. Reset combo on paddle hit and on life loss. Show a combo meter in the HUD: small pips or "COMBO ×3" text that pulses.
+
+Sound (WebAudio):
+```js
+const AudioSys = {
+  ctx:null, muted:false,
+  ensure(){ if(!this.ctx){ this.ctx = new (window.AudioContext||window.webkitAudioContext)(); } if(this.ctx.state==='suspended') this.ctx.resume(); },
+  beep(freq, dur, type='square', vol=0.15, slide=0){ ... oscillator + gain envelope ... }
+}
+```
+Sounds:
+- Paddle: square 180→240Hz, 0.06s
+- Wall: triangle 320Hz, 0.04s, low volume
+- Brick: square, freq = 400 + combo*60, 0.07s; 2-hit brick first hit: 250Hz thud
+- Break (2nd hit): 2 tones
+- Life loss: sawtooth 300→80, 0.4s
+- Launch: 500→900 sweep 0.12s
+- Level clear: arpeggio [523,659,784,1047]
+- Game over: [400,300,200,120] slow
+- Combo milestone: small ping
+
+Implement a helper `tone(f0, f1, dur, type, vol, delay=0)`.
+
+Input:
+- mousemove: track mouse world x; paddle target.
+- keydown: ArrowLeft/Right set flags; Space triggers action based on state; M toggles mute.
+- keyup: clear flags.
+- Also touch? Not required; skip (mouse + keys). Maybe add touchmove for mobile as a bonus — cheap to add: touchmove sets paddle x. Let me add it, why not.
+
+Paddle movement: if keys are pressed, move by speed*dt and override the mouse target (set mouseTarget = paddle.x so it doesn't snap back). Standard approach: paddle.x += (keys? keySpeed*dt : 0); if mouse moved recently, lerp paddle.x toward mouseTarget quickly. Simplest: on mousemove, set paddle.x directly (clamped). Keys adjust paddle.x. Both work simultaneously.
+
+Game loop: requestAnimationFrame with dt clamped (max 1/30). Fixed-ish step is fine with dt.
+
+Collision details:
+Ball vs brick: for each alive brick, AABB. Circle-rect closest point test. On hit: determine axis: compare overlapX and overlapY using the previous position or penetration. Use: dx = ball.x - clamp(ball.x, bx, bx+bw); dy = ball.y - clamp(ball.y, by, by+bh); if dx*dx+dy*dy < r*r → hit. Reflection: if |dx| > |dy| → reverse vx (sign of dx), else reverse vy (sign of dy). If both are 0 (center inside), reverse vy. Then damage the brick.
+
+Only process the first brick hit per frame (break the loop) to avoid double reflection.
+
+Ball vs paddle: if vy>0 and ball.y + r >= paddle.y and ball.y - r <= paddle.y + paddle.h and |ball.x - paddle.x| <= paddle.w/2 + r → bounce. rel = (ball.x - paddle.x)/(paddle.w/2 + r) clamped to [-1,1]; angle = rel * 65° (max). speed = min(speed + 6, maxSpeed). vx = speed*sin(angle), vy = -speed*cos(angle). Ensure a minimum |vy| so the ball doesn't go horizontal: if |vy| < 0.25*speed, adjust. Actually, with max angle 65°, cos(65°)=0.42, so vy is at least 0.42*speed — fine.
+
+Walls: x-r<0 → x=r, vx=abs; x+r>W → x=W-r, vx=-abs; y-r<topBound (HUD line? playfield top) → y=topBound+r, vy=abs. Playfield: is the whole world the playfield? The HUD is drawn at the top; the ball bounces at y = HUD_H (e.g., 64). Let me define PLAY_TOP = 64. Bottom: y - r > H → life loss.
+
+Life loss: shake big, red flash vignette, sound, lives--, combo=0. If lives>0 → state 'ready', ball on paddle. Otherwise → 'gameover', update best.
+
+Level clear: state 'levelcomplete', bonus = 500 + lives*100? Show "LEVEL CLEAR" + bonus. Space → level++, if level > 3 → 'win' screen (or treat as a final level clear with "YOU WIN"). Let me do: after level 3 clear → 'win' state, "YOU WIN!" + final score + space to restart.
+
+Ready state: ball follows paddle; draw "PRESS SPACE TO LAUNCH" pulsing. First time, also show the title "BREAKOUT" big.
+
+Now, rendering details for polish:
+
+Background (full canvas, in screen space):
+- Fill with a deep gradient: #070a14 → #0d1226 vertical? Add a subtle radial glow in the center.
+- Stars: ~120 stars with parallax drift (slowly move down-left, wrap), twinkle (alpha sin). Draw in screen space, unaffected by shake (or slightly affected — parallax: shake * 0.3).
+- Maybe a faint grid in the playfield.
+
+Playfield frame: rounded rectangle stroke with glow (level accent color), inner subtle fill (slightly lighter than the background, e.g., rgba(255,255,255,0.02)) and a faint grid line.
+
+HUD:
+- Left: "SCORE" label small (monospace, letter-spaced, dim), value big (monospace bold, white).
+- Center: "LEVEL 1" + level name? Level names: "SECTOR 1"? Cute: "WAVE 1." Let's do "LEVEL 1/3."
+- Right: "LIVES" + 3 ball icons (glowing circles, dim when lost).
+- Below the score: "BEST 12345" small.
+- Combo: when active, show "COMBO ×3" in the center below the level, pulsing, colored.
+
+Fonts:
+- Display: `900 64px Impact, 'Arial Black', 'Franklin Gothic Bold', sans-serif` — Impact is widely available (Windows/mac). Fallback is fine.
+- Monospace: `'Consolas','SF Mono','Menlo','Courier New',monospace`.
+- Letter-spacing on canvas: ctx.letterSpacing works in modern Chrome; not universal. I can manually space by drawing characters, or just use it if available. Simpler: use ctx.letterSpacing = '3px' with a guard (it's a property; setting it on unsupported browsers is harmless). Actually, setting an unknown property on ctx is harmless. Let's use it.
+
+Title screen: big "BREAKOUT" with a chromatic aberration offset (draw 3 times: red offset left, cyan offset right, white on top) — very arcade. Subtitle "A JUICE-FEST ARCADE" or control hints: "MOUSE / ← → MOVE · SPACE LAUNCH · M SOUND."
+
+Level clear screen: dark overlay, "LEVEL 2 CLEAR" big, "BONUS +600," "PRESS SPACE FOR NEXT LEVEL" pulsing. Confetti particles? Spawn celebratory particles.
+
+Game over: "GAME OVER" big in red, "FINAL SCORE 12345," "BEST 23456" (with "NEW BEST!" if updated), "PRESS SPACE TO RESTART."
+
+Win: "YOU WIN!" gold, final score, space to play again.
+
+Screen transitions: fade in the overlay (stateTime).
+
+Extra juice:
+- Ball speed lines when fast? The trail covers it.
+- Paddle edge glow on ball approach? Skip.
+- Brick break: also spawn a ring shockwave (expanding circle stroke that fades). Nice.
+- Life loss: red vignette flash + big shake + slow-mo? Brief slow-mo (timeScale 0.3 for 0.3s) is very juicy. Let me add a hitstop: on brick break, a tiny hitstop (timeScale 0.05 for 40ms)? Hitstop on brick break might feel choppy with many bricks; keep it small (30ms). On life loss: 200ms slow-mo. Implement timeScale with a timer.
+
+- Paddle: gradient, rounded, with a glow, and maybe a small "engine" light.
+
+- Ball: white core with colored glow (color shifts with speed or combo).
+
+HUD:
+- Top bar: SCORE (left), LEVEL (center), LIVES (right, drawn as small ball icons or hearts). Combo indicator.
+- Fonts: display "Impact" for big text; monospace for numbers.
+
+Screens:
+- Start screen? The requirement doesn't explicitly ask for a start screen, but "level clear and game over screens" are required. A start screen is nice: "BREAKOUT — press SPACE to start." Actually, the ready state (ball on paddle, "press SPACE to launch") can double as the start. Let me do this: initial state 'ready' with a title overlay "BREAKOUT" and "SPACE to launch." After game over, "GAME OVER — final score — SPACE to restart." Level clear: "LEVEL X CLEAR — bonus +500 — SPACE for next level." After the final level: "YOU WIN."
+
+Lives: 3, drawn as small glowing balls.
+
+Controls:
+- Mouse move: paddle follows mouse x (in world coordinates).
+- Arrow keys: move paddle at a constant speed (e.g., 900 px/s), with acceleration? Constant speed is fine; hold both? Left takes priority or net.
+- Space: launch / advance screen / restart.
+- M: mute.
+- Prevent page scroll on space/arrows: e.preventDefault().
+
+Ball launch: from the top of the paddle, at a slight random angle.
+
+Ball stuck to paddle in ready state: ball follows the paddle.
+
+Level clear: when all bricks are destroyed (or all destructible bricks). Award a bonus. Show the screen; space → next level (reset bricks, ball to paddle, speed up).
+
+Game over: lives = 0. Show final score, best score (localStorage? "no external assets" — localStorage is fine, it's not an asset). Save high score in localStorage. Show "BEST" in the HUD. Nice touch.
+
+Now, code structure:
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Breakout</title>
+<style>
+  html,body{margin:0;height:100%;overflow:hidden;background:#0b0e1a;}
+  canvas{display:block;width:100vw;height:100vh;cursor:none;}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+// ... game
+</script>
+</body>
+</html>
+```
+
+Cursor: hide the cursor over the canvas since the mouse controls the paddle? The paddle is at the bottom, the mouse is anywhere — hiding the cursor is fine and arcade-like. But on the game over screen, the cursor is hidden and there's no pointer... it's keyboard-driven anyway. Hide the cursor (cursor:none) — the ball/paddle is the feedback. Actually, maybe keep the cursor visible? Hiding feels more game-like. Let's hide it.
+
+World: W=960, H=640.
+
+Layout:
+- HUD height ~64 at the top of the world.
+- Brick area: top offset ~100, 6 rows, brick height 26, gap 6. Columns: 10. Side margins: compute brickW = (W - 2*margin - (cols-1)*gap)/cols, margin ~48.
+- Paddle: y = H - 56, width 110 (shrinks slightly per level? Classic Breakout shrinks the paddle — nice difficulty ramp: level 1: 120, level 2: 104, level 3: 92). Height 16, rounded.
+- Ball radius 7.
+
+Ball speed: base 420 px/s, +40 per level, +8 per paddle hit, cap ~720.
+
+Brick colors per row (level 1 palette):
+Row 0: #ff5d5d (red) — 2 hits
+Row 1: #ffb14d (orange) — 2 hits
+Row 2: #ffe14d (yellow)
+Row 3: #6ee76e? Let me pick a cohesive arcade palette:
+- #ff4d6d (pinkish red)
+- #ff9f43 (orange)
+- #ffe066 (yellow)
+- #51e08a? or #2ed573
+Row 4: #38b6ff / #45c4ff
+Row 5: #b06bff / #a55eea
+
+Level 2 palette: cyan/teal/mint... Level 3: hot magenta/gold... Let me define palettes:
+L1: ['#ff5252','#ff9f43','#ffe066','#2ed573','#3fa7ff','#b06bff']
+L2: ['#ff6b9d','#ffa94d','#ffd43b','#69db7c','#38d9e0'? ...] hmm, let me make it:
+L2: ['#f783ac','#ffd43b','#63e6be','#4dabf7','#9775fa','#ff8787']
+L3: ['#ff4d4d','#ff7847','#ffd60a','#80ed99','#48cae4','#c77dff']
+
+Good enough — colorful.
+
+Brick rendering: rounded rectangle with a vertical gradient (lighter on top), a subtle inner highlight line, and a glow shadow. 2-hit bricks: draw with a slightly different look — maybe a metallic/striped top, or a "shield" look: brighter with a double border; after the first hit, show a crack (draw a crack line) and a darker tone. Cracks: precompute a random crack pattern per brick? Simpler: draw 2-3 jagged lines from a hit point. Store brick.crack = true and draw a deterministic pseudo-random crack based on the brick's index.
+
+Brick hit feedback: brick.flash timer (white overlay), brick.wobble (offset oscillation).
+
+Particles: array of {x,y,vx,vy,life,maxLife,size,color,rot,vr,shape}. Update with gravity 900, fade. Draw as small rotating rectangles or circles. Use 'lighter' composite for glow particles.
+
+Trail: array of {x,y,life}. Push ball position each frame (or every other frame). Draw circles with decreasing radius and alpha, 'lighter'.
+
+Floating text: {x,y,text,life,color,size}.
+
+Screen shake: shake = {t:0, mag:0}. On trigger: shake.t = duration, shake.mag = m. Each frame, offset = random within mag * (t/duration). Apply to world transform.
+
+Paddle squash: paddle.squash timer; on hit, squash=1, decays; draw with scaleY = 1 - 0.35*squash, scaleX = 1 + 0.25*squash.
+
+Ball glow color: base white; hue shifts with combo? Ball color = white core + colored halo (color = current combo color or level accent).
+
+Combo: comboCount increments per brick break during a rally (reset on paddle hit? or on life loss?). Classic juice: multiplier increases per brick broken without touching the paddle. Let's do: on paddle hit, combo=0; on brick break, combo++, multiplier = min(combo, 8)? Score = base * (1 + (combo-1)*0.5)? Keep integers: base points by row: top row 50, then 40,30,20,15,10? Actually, top rows are tougher (2 hits) so worth more: row points = [60,50,40,30,20,10]. Multiplier = 1 + floor(combo/3)? Simpler: multiplier = min(1+combo, 5)? Hmm.
+
+Let me do: combo counts consecutive brick breaks since the last paddle touch. Multiplier = min(combo, 5) but starts at 1: mult = Math.min(combo, 5). Score gained = rowPoints * mult. Show "×N" when N>1, and floating text shows the total. Reset combo on paddle hit and on life loss. Show a combo meter in the HUD: small pips or "COMBO ×3" text that pulses.
+
+Sound (WebAudio):
+```js
+const AudioSys = {
+  ctx:null, muted:false,
+  ensure(){ if(!this.ctx){ this.ctx = new (window.AudioContext||window.webkitAudioContext)(); } if(this.ctx.state==='suspended') this.ctx.resume(); },
+  beep(freq, dur, type='square', vol=0.15, slide=0){ ... oscillator + gain envelope ... }
+}
+```
+Sounds:
+- Paddle: square 180→240Hz, 0.06s
+- Wall: triangle 320Hz, 0.04s, low volume
+- Brick: square, freq = 400 + combo*60, 0.07s; 2-hit brick first hit: 250Hz thud
+- Break (2nd hit): 2 tones
+- Life loss: sawtooth 300→80, 0.4s
+- Launch: 500→900 sweep 0.12s
+- Level clear: arpeggio [523,659,784,1047]
+- Game over: [400,300,200,120] slow
+- Combo milestone: small ping
+
+Implement a helper `tone(f0, f1, dur, type, vol, delay=0)`.
+
+Input:
+- mousemove: track mouse world x; paddle target.
+- keydown: ArrowLeft/Right set flags; Space triggers action based on state; M toggles mute.
+- keyup: clear flags.
+- Also touch? Not required; skip (mouse + keys). Maybe add touchmove for mobile as a bonus — cheap to add: touchmove sets paddle x. Let me add it, why not.
+
+Paddle movement: if keys are pressed, move by speed*dt and override the mouse target (set mouseTarget = paddle.x so it doesn't snap back). Standard approach: paddle.x += (keys? keySpeed*dt : 0); if mouse moved recently, lerp paddle.x toward mouseTarget quickly. Simplest: on mousemove, set paddle.x directly (clamped). Keys adjust paddle.x. Both work simultaneously.
+
+Game loop: requestAnimationFrame with dt clamped (max 1/30). Fixed-ish step is fine with dt.
+
+Collision details:
+Ball vs brick: for each alive brick, AABB. Circle-rect closest point test. On hit: determine axis: compare overlapX and overlapY using the previous position or penetration. Use: dx = ball.x - clamp(ball.x, bx, bx+bw); dy = ball.y - clamp(ball.y, by, by+bh); if dx*dx+dy*dy < r*r → hit. Reflection: if |dx| > |dy| → reverse vx (sign of dx), else reverse vy (sign of dy). If both are 0 (center inside), reverse vy. Then damage the brick.
+
+Only process the first brick hit per frame (break the loop) to avoid double reflection.
+
+Ball vs paddle: if vy>0 and ball.y + r >= paddle.y and ball.y - r <= paddle.y + paddle.h and |ball.x - paddle.x| <= paddle.w/2 + r → bounce. rel = (ball.x - paddle.x)/(paddle.w/2 + r) clamped to [-1,1]; angle = rel * 65° (max). speed = min(speed + 6, maxSpeed). vx = speed*sin(angle), vy = -speed*cos(angle). Ensure a minimum |vy| so the ball doesn't go horizontal: if |vy| < 0.25*speed, adjust. Actually, with max angle 65°, cos(65°)=0.42, so vy is at least 0.42*speed — fine.
+
+Walls: x-r<0 → x=r, vx=abs; x+r>W → x=W-r, vx=-abs; y-r<topBound (HUD line? playfield top) → y=topBound+r, vy=abs. Playfield: is the whole world the playfield? The HUD is drawn at the top; the ball bounces at y = HUD_H (e.g., 64). Let me define PLAY_TOP = 64. Bottom: y - r > H → life loss.
+
+Life loss: shake big, red flash vignette, sound, lives--, combo=0. If lives>0 → state 'ready', ball on paddle. Otherwise → 'gameover', update best.
+
+Level clear: state 'levelcomplete', bonus = 500 + lives*100? Show "LEVEL CLEAR" + bonus. Space → level++, if level > 3 → 'win' screen (or treat as a final level clear with "YOU WIN"). Let me do: after level 3 clear → 'win' state, "YOU WIN!" + final score + space to restart.
+
+Ready state: ball follows paddle; draw "PRESS SPACE TO LAUNCH" pulsing. First time, also show the title "BREAKOUT" big.
+
+Now, rendering details for polish:
+
+Background (full canvas, in screen space):
+- Fill with a deep gradient: #070a14 → #0d1226 vertical? Add a subtle radial glow in the center.
+- Stars: ~120 stars with parallax drift (slowly move down-left, wrap), twinkle (alpha sin). Draw in screen space, unaffected by shake (or slightly affected — parallax: shake * 0.3).
+- Maybe a faint grid in the playfield.
+
+Playfield frame: rounded rectangle stroke with glow (level accent color), inner subtle fill (slightly lighter than the background, e.g., rgba(255,255,255,0.02)) and a faint grid line.
+
+HUD:
+- Left: "SCORE" label small (monospace, letter-spaced, dim), value big (monospace bold, white).
+- Center: "LEVEL 1" + level name? Level names: "SECTOR 1"? Cute: "WAVE 1." Let's do "LEVEL 1/3."
+- Right: "LIVES" + 3 ball icons (glowing circles, dim when lost).
+- Below the score: "BEST 12345" small.
+- Combo: when active, show "COMBO ×3" in the center below the level, pulsing, colored.
+
+Fonts:
+- Display: `900 64px Impact, 'Arial Black', 'Franklin Gothic Bold', sans-serif` — Impact is widely available (Windows/mac). Fallback is fine.
+- Monospace: `'Consolas','SF Mono','Menlo','Courier New',monospace`.
+- Letter-spacing on canvas: ctx.letterSpacing works in modern Chrome; not universal. I can manually space by drawing characters, or just use it if available. Simpler: use ctx.letterSpacing = '3px' with a guard (it's a property; setting it on unsupported browsers is harmless). Actually, setting an unknown property on ctx is harmless. Let's use it.
+
+Title screen: big "BREAKOUT" with a chromatic aberration offset (draw 3 times: red offset left, cyan offset right, white on top) — very arcade. Subtitle "A JUICE-FEST ARCADE" or control hints: "MOUSE / ← → MOVE · SPACE LAUNCH · M SOUND."
+
+Level clear screen: dark overlay, "LEVEL 2 CLEAR" big, "BONUS +600," "PRESS SPACE FOR NEXT LEVEL" pulsing. Confetti particles? Spawn celebratory particles.
+
+Game over: "GAME OVER" big in red, "FINAL SCORE 12345," "BEST 23456" (with "NEW BEST!" if updated), "PRESS SPACE TO RESTART."
+
+Win: "YOU WIN!" gold, final score, space to play again.
+
+Screen transitions: fade in the overlay (stateTime).
+
+Extra juice:
+- Ball speed lines when fast? The trail covers it.
+- Paddle edge glow on ball approach? Skip.
+- Brick break: also spawn a ring shockwave (expanding circle stroke that fades). Nice.
+- Life loss: red vignette flash + big shake + slow-mo? Brief slow-mo (timeScale 0.3 for 0.3s) is very juicy. Let me add a hitstop: on brick break, a tiny hitstop (timeScale 0.05 for 40ms)? Hitstop on brick break might feel choppy with many bricks; keep it small (30ms). On life loss: 200ms slow-mo. Implement timeScale with a timer.
+
+- Paddle: gradient, rounded, with a glow, and maybe a small "engine" light.
+
+- Ball: white core with colored glow (color shifts with speed or combo).
+
+HUD:
+- Top bar: SCORE (left), LEVEL (center), LIVES (right, drawn as small ball icons or hearts). Combo indicator.
+- Fonts: display "Impact" for big text; monospace for numbers.
+
+Screens:
+- Start screen? The requirement doesn't explicitly ask for a start screen, but "level clear and game over screens" are required. A start screen is nice: "BREAKOUT — press SPACE to start." Actually, the ready state (ball on paddle, "press SPACE to launch") can double as the start. Let me do this: initial state 'ready' with a title overlay "BREAKOUT" and "SPACE to launch." After game over, "GAME OVER — final score — SPACE to restart." Level clear: "LEVEL X CLEAR — bonus +500 — SPACE for next level." After the final level: "YOU WIN."
+
+Lives: 3, drawn as small glowing balls.
+
+Controls:
+- Mouse move: paddle follows mouse x (in world coordinates).
+- Arrow keys: move paddle at a constant speed (e.g., 900 px/s), with acceleration? Constant speed is fine; hold both? Left takes priority or net.
+- Space: launch / advance screen / restart.
+- M: mute.
+- Prevent page scroll on space/arrows: e.preventDefault().
+
+Ball launch: from the top of the paddle, at a slight random angle.
+
+Ball stuck to paddle in ready state: ball follows the paddle.
+
+Level clear: when all bricks are destroyed (or all destructible bricks). Award a bonus. Show the screen; space → next level (reset bricks, ball to paddle, speed up).
+
+Game over: lives = 0. Show final score, best score (localStorage? "no external assets" — localStorage is fine, it's not an asset). Save high score in localStorage. Show "BEST" in the HUD. Nice touch.
+
+Now, code structure:
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Breakout</title>
+<style>
+  html,body{margin:0;height:100%;overflow:hidden;background:#0b0e1a;}
+  canvas{display:block;width:100vw;height:100vh;cursor:none;}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+// ... game
+</script>
+</body>
+</html>
+```
+
+Cursor: hide the cursor over the canvas since the mouse controls the paddle? The paddle is at the bottom, the mouse is anywhere — hiding the cursor is fine and arcade-like. But on the game over screen, the cursor is hidden and there's no pointer... it's keyboard-driven anyway. Hide the cursor (cursor:none) — the ball/paddle is the feedback. Actually, maybe keep the cursor visible? Hiding feels more game-like. Let's hide it.
+
+World: W=960, H=640.
+
+Layout:
+- HUD height ~64 at the top of the world.
+- Brick area: top offset ~100, 6 rows, brick height 26, gap 6. Columns: 10. Side margins: compute brickW = (W - 2*margin - (cols-1)*gap)/cols, margin ~48.
+- Paddle: y = H - 56, width 110 (shrinks slightly per level? Classic Breakout shrinks the paddle — nice difficulty ramp: level 1: 120, level 2: 104, level 3: 92). Height 16, rounded.
+- Ball radius 7.
+
+Ball speed: base 420 px/s, +40 per level, +8 per paddle hit, cap ~720.
+
+Brick colors per row (level 1 palette):
+Row 0: #ff5d5d (red) — 2 hits
+Row 1: #ffb14d (orange) — 2 hits
+Row 2: #ffe14d (yellow)
+Row 3: #6ee76e? Let me pick a cohesive arcade palette:
+- #ff4d6d (pinkish red)
+- #ff9f43 (orange)
+- #ffe066 (yellow)
+- #51e08a? or #2ed573
+Row 4: #38b6ff / #45c4ff
+Row 5: #b06bff / #a55eea
+
+Level 2 palette: cyan/teal/mint... Level 3: hot magenta/gold... Let me define palettes:
+L1: ['#ff5252','#ff9f43','#ffe066','#2ed573','#3fa7ff','#b06bff']
+L2: ['#ff6b9d','#ffa94d','#ffd43b','#69db7c','#38d9e0'? ...] hmm, let me make it:
+L2: ['#f783ac','#ffd43b','#63e6be','#4dabf7','#9775fa','#ff8787']
+L3: ['#ff4d4d','#ff7847','#ffd60a','#80ed99','#48cae4','#c77dff']
+
+Good enough — colorful.
+
+Brick rendering: rounded rectangle with a vertical gradient (lighter on top), a subtle inner highlight line, and a glow shadow. 2-hit bricks: draw with a slightly different look — maybe a metallic/striped top, or a "shield" look: brighter with a double border; after the first hit, show a crack (draw a crack line) and a darker tone. Cracks: precompute a random crack pattern per brick? Simpler: draw 2-3 jagged lines from a hit point. Store brick.crack = true and draw a deterministic pseudo-random crack based on the brick's index.
+
+Brick hit feedback: brick.flash timer (white overlay), brick.wobble (offset oscillation).
+
+Particles: array of {x,y,vx,vy,life,maxLife,size,color,rot,vr,shape}. Update with gravity 900, fade. Draw as small rotating rectangles or circles. Use 'lighter' composite for glow particles.
+
+Trail: array of {x,y,life}. Push ball position each frame (or every other frame). Draw circles with decreasing radius and alpha, 'lighter'.
+
+Floating text: {x,y,text,life,color,size}.
+
+Screen shake: shake = {t:0, mag:0}. On trigger: shake.t = duration, shake.mag = m. Each frame, offset = random within mag * (t/duration). Apply to world transform.
+
+Paddle squash: paddle.squash timer; on hit, squash=1, decays; draw with scaleY = 1 - 0.35*squash, scaleX = 1 + 0.25*squash.
+
+Ball glow color: base white; hue shifts with combo? Ball color = white core + colored halo (color = current combo color or level accent).
+
+Combo: comboCount increments per brick break during a rally (reset on paddle hit? or on life loss?). Classic juice: multiplier increases per brick broken without touching the paddle. Let's do: on paddle hit, combo=0; on brick break, combo++, multiplier = min(combo, 8)? Score = base * (1 + (combo-1)*0.5)? Keep integers: base points by row: top row 50, then 40,30,20,15,10? Actually, top rows are tougher (2 hits) so worth more: row points = [60,50,40,30,20,10]. Multiplier = 1 + floor(combo/3)? Simpler: multiplier = min(1+combo, 5)? Hmm.
+
+Let me do: combo counts consecutive brick breaks since the last paddle touch. Multiplier = min(combo, 5) but starts at 1: mult = Math.min(combo, 5). Score gained = rowPoints * mult. Show "×N" when N>1, and floating text shows the total. Reset combo on paddle hit and on life loss. Show a combo meter in the HUD: small pips or "COMBO ×3" text that pulses.
+
+Sound (WebAudio):
+```js
+const AudioSys = {
+  ctx:null, muted:false,
+  ensure(){ if(!this.ctx){ this.ctx = new (window.AudioContext||window.webkitAudioContext)(); } if(this.ctx.state==='suspended') this.ctx.resume(); },
+  beep(freq, dur, type='square', vol=0.15, slide=0){ ... oscillator + gain envelope ... }
+}
+```
+Sounds:
+- Paddle: square 180→240Hz, 0.06s
+- Wall: triangle 320Hz, 0.04s, low volume
+- Brick: square, freq = 400 + combo*60, 0.07s; 2-hit brick first hit: 250Hz thud
+- Break (2nd hit): 2 tones
+- Life loss: sawtooth 300→80, 0.4s
+- Launch: 500→900 sweep 0.12s
+- Level clear: arpeggio [523,659,784,1047]
+- Game over: [400,300,200,120] slow
+- Combo milestone: small ping
+
+Implement a helper `tone(f0, f1, dur, type, vol, delay=0)`.
+
+Input:
+- mousemove: track mouse world x; paddle target.
+- keydown: ArrowLeft/Right set flags; Space triggers action based on state; M toggles mute.
+- keyup: clear flags.
+- Also touch? Not required; skip (mouse + keys). Maybe add touchmove for mobile as a bonus — cheap to add: touchmove sets paddle x. Let me add it, why not.
+
+Paddle movement: if keys are pressed, move by speed*dt and override the mouse target (set mouseTarget = paddle.x so it doesn't snap back). Standard approach: paddle.x += (keys? keySpeed*dt : 0); if mouse moved recently, lerp paddle.x toward mouseTarget quickly. Simplest: on mousemove, set paddle.x directly (clamped). Keys adjust paddle.x. Both work simultaneously.
+
+Game loop: requestAnimationFrame with dt clamped (max 1/30). Fixed-ish step is fine with dt.
+
+Collision details:
+Ball vs brick: for each alive brick, AABB. Circle-rect closest point test. On hit: determine axis: compare overlapX and overlapY using the previous position or penetration. Use: dx = ball.x - clamp(ball.x, bx, bx+bw); dy = ball.y - clamp(ball.y, by, by+bh); if dx*dx+dy*dy < r*r → hit. Reflection: if |dx| > |dy| → reverse vx (sign of dx), else reverse vy (sign of dy). If both are 0 (center inside), reverse vy. Then damage the brick.
+
+Only process the first brick hit per frame (break the loop) to avoid double reflection.
+
+Ball vs paddle: if vy>0 and ball.y + r >= paddle.y and ball.y - r <= paddle.y + paddle.h and |ball.x - paddle.x| <= paddle.w/2 + r → bounce. rel = (ball.x - paddle.x)/(paddle.w/2 + r) clamped to [-1,1]; angle = rel * 65° (max). speed = min(speed + 6, maxSpeed). vx = speed*sin(angle), vy = -speed*cos(angle). Ensure a minimum |vy| so the ball doesn't go horizontal: if |vy| < 0.25*speed, adjust. Actually, with max angle 65°, cos(65°)=0.42, so vy is at least 0.42*speed — fine.
+
+Walls: x-r<0 → x=r, vx=abs; x+r>W → x=W-r, vx=-abs; y-r<topBound (HUD line? playfield top) → y=topBound+r, vy=abs. Playfield: is the whole world the playfield? The HUD is drawn at the top; the ball bounces at y = HUD_H (e.g., 64). Let me define PLAY_TOP = 64. Bottom: y - r > H → life loss.
+
+Life loss: shake big, red flash vignette, sound, lives--, combo=0. If lives>0 → state 'ready', ball on paddle. Otherwise → 'gameover', update best.
+
+Level clear: state 'levelcomplete', bonus = 500 + lives*100? Show "LEVEL CLEAR" + bonus. Space → level++, if level > 3 → 'win' screen (or treat as a final level clear with "YOU WIN"). Let me do: after level 3 clear → 'win' state, "YOU WIN!" + final score + space to restart.
+
+Ready state: ball follows paddle; draw "PRESS SPACE TO LAUNCH" pulsing. First time, also show the title "BREAKOUT" big.
+
+Now, rendering details for polish:
+
+Background (full canvas, in screen space):
+- Fill with a deep gradient: #070a14 → #0d1226 vertical? Add a subtle radial glow in the center.
+- Stars: ~120 stars with parallax drift (slowly move down-left, wrap), twinkle (alpha sin). Draw in screen space, unaffected by shake (or slightly affected — parallax: shake * 0.3).
+- Maybe a faint grid in the playfield.
+
+Playfield frame: rounded rectangle stroke with glow (level accent color), inner subtle fill (slightly lighter than the background, e.g., rgba(255,255,255,0.02)) and a faint grid line.
+
+HUD:
+- Left: "SCORE" label small (monospace, letter-spaced, dim), value big (monospace bold, white).
+- Center: "LEVEL 1" + level name? Level names: "SECTOR 1"? Cute: "WAVE 1." Let's do "LEVEL 1/3."
+- Right: "LIVES" + 3 ball icons (glowing circles, dim when lost).
+- Below the score: "BEST 12345" small.
+- Combo: when active, show "COMBO ×3" in the center below the level, pulsing, colored.
+
+Fonts:
+- Display: `900 64px Impact, 'Arial Black', 'Franklin Gothic Bold', sans-serif` — Impact is widely available (Windows/mac). Fallback is fine.
+- Monospace: `'Consolas','SF Mono','Menlo','Courier New',monospace`.
+- Letter-spacing on canvas: ctx.letterSpacing works in modern Chrome; not universal. I can manually space by drawing characters, or just use it if available. Simpler: use ctx.letterSpacing = '3px' with a guard (it's a property; setting it on unsupported browsers is harmless). Actually, setting an unknown property on ctx is harmless. Let's use it.
+
+Title screen: big "BREAKOUT" with a chromatic aberration offset (draw 3 times: red offset left, cyan offset right, white on top) — very arcade. Subtitle "A JUICE-FEST ARCADE" or control hints: "MOUSE / ← → MOVE · SPACE LAUNCH · M SOUND."
+
+Level clear screen: dark overlay, "LEVEL 2 CLEAR" big, "BONUS +600," "PRESS SPACE FOR NEXT LEVEL" pulsing. Confetti particles? Spawn celebratory particles.
+
+Game over: "GAME OVER" big in red, "FINAL SCORE 12345," "BEST 23456" (with "NEW BEST!" if updated), "PRESS SPACE TO RESTART."
+
+Win: "YOU WIN!" gold, final score, space to play again.
+
+Screen transitions: fade in the overlay (stateTime).
+
+Extra juice:
+- Ball speed lines when fast? The trail covers it.
+- Paddle edge glow on ball approach? Skip.
+- Brick break: also spawn a ring shockwave (expanding circle stroke that fades). Nice.
+- Life loss: red vignette flash + big shake + slow-mo? Brief slow-mo (timeScale 0.3 for 0.3s) is very juicy. Let me add a hitstop: on brick break, a tiny hitstop (timeScale 0.05 for 40ms)? Hitstop on brick break might feel choppy with many bricks; keep it small (30ms). On life loss: 200ms slow-mo. Implement timeScale with a timer.
+
+- Paddle: gradient, rounded, with a glow, and maybe a small "engine" light.
+
+- Ball: white core with colored glow (color shifts with speed or combo).
+
+HUD:
+- Top bar: SCORE (left), LEVEL (center), LIVES (right, drawn as small ball icons or hearts). Combo indicator.
+- Fonts: display "Impact" for big text; monospace for numbers.
+
+Screens:
+- Start screen? The requirement doesn't explicitly ask for a start screen, but "level clear and game over screens" are required. A start screen is nice: "BREAKOUT — press SPACE to start." Actually, the ready state (ball on paddle, "press SPACE to launch") can double as the start. Let me do this: initial state 'ready' with a title overlay "BREAKOUT" and "SPACE to launch." After game over, "GAME OVER — final score — SPACE to restart." Level clear: "LEVEL X CLEAR — bonus +500 — SPACE for next level." After the final level: "YOU WIN."
+
+Lives: 3, drawn as small glowing balls.
+
+Controls:
+- Mouse move: paddle follows mouse x (in world coordinates).
+- Arrow keys: move paddle at a constant speed (e.g., 900 px/s), with acceleration? Constant speed is fine; hold both? Left takes priority or net.
+- Space: launch / advance screen / restart.
+- M: mute.
+- Prevent page scroll on space/arrows: e.preventDefault().
+
+Ball launch: from the top of the paddle, at a slight random angle.
+
+Ball stuck to paddle in ready state: ball follows the paddle.
+
+Level clear: when all bricks are destroyed (or all destructible bricks). Award a bonus. Show the screen; space → next level (reset bricks, ball to paddle, speed up).
+
+Game over: lives = 0. Show final score, best score (localStorage? "no external assets" — localStorage is fine, it's not an asset). Save high score in localStorage. Show "BEST" in the HUD. Nice touch.
+
+Now, code structure:
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Breakout</title>
+<style>
+  html,body{margin:0;height:100%;overflow:hidden;background:#0b0e1a;}
+  canvas{display:block;width:100vw;height:100vh;cursor:none;}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+// ... game
+</script>
+</body>
+</html>
+```
+
+Cursor: hide the cursor over the canvas since the mouse controls the paddle? The paddle is at the bottom, the mouse is anywhere — hiding the cursor is fine and arcade-like. But on the game over screen, the cursor is hidden and there's no pointer... it's keyboard-driven anyway. Hide the cursor (cursor:none) — the ball/paddle is the feedback. Actually, maybe keep the cursor visible? Hiding feels more game-like. Let's hide it.
+
+World: W=960, H=640.
+
+Layout:
+- HUD height ~64 at the top of the world.
+- Brick area: top offset ~100, 6 rows, brick height 26, gap 6. Columns: 10. Side margins: compute brickW = (W - 2*margin - (cols-1)*gap)/cols, margin ~48.
+- Paddle: y = H - 56, width 110 (shrinks slightly per level? Classic Breakout shrinks the paddle — nice difficulty ramp: level 1: 120, level 2: 104, level 3: 92). Height 16, rounded.
+- Ball radius 7.
+
+Ball speed: base 420 px/s, +40 per level, +8 per paddle hit, cap ~720.
+
+Brick colors per row (level 1 palette):
+Row 0: #ff5d5d (red) — 2 hits
+Row 1: #ffb14d (orange) — 2 hits
+Row 2: #ffe14d (yellow)
+Row 3: #6ee76e? Let me pick a cohesive arcade palette:
+- #ff4d6d (pinkish red)
+- #ff9f43 (orange)
+- #ffe066 (yellow)
+- #51e08a? or #2ed573
+Row 4: #38b6ff / #45c4ff
+Row 5: #b06bff / #a55eea
+
+Level 2 palette: cyan/teal/mint... Level 3: hot magenta/gold... Let me define palettes:
+L1: ['#ff5252','#ff9f43','#ffe066','#2ed573','#3fa7ff','#b06bff']
+L2: ['#ff6b9d','#ffa94d','#ffd43b','#69db7c','#38d9e0'? ...] hmm, let me make it:
+L2: ['#f783ac','#ffd43b','#63e6be','#4dabf7','#9775fa','#ff8787']
+L3: ['#ff4d4d','#ff7847','#ffd60a','#80ed99','#48cae4','#c77dff']
+
+Good enough — colorful.
+
+Brick rendering: rounded rectangle with a vertical gradient (lighter on top), a subtle inner highlight line, and a glow shadow. 2-hit bricks: draw with a slightly different look — maybe a metallic/striped top, or a "shield" look: brighter with a double border; after the first hit, show a crack (draw a crack line) and a darker tone. Cracks: precompute a random crack pattern per brick? Simpler: draw 2-3 jagged lines from a hit point. Store brick.crack = true and draw a deterministic pseudo-random crack based on the brick's index.
+
+Brick hit feedback: brick.flash timer (white overlay), brick.wobble (offset oscillation).
+
+Particles: array of {x,y,vx,vy,life,maxLife,size,color,rot,vr,shape}. Update with gravity 900, fade. Draw as small rotating rectangles or circles. Use 'lighter' composite for glow particles.
+
+Trail: array of {x,y,life}. Push ball position each frame (or every other frame). Draw circles with decreasing radius and alpha, 'lighter'.
+
+Floating text: {x,y,text,life,color,size}.
+
+Screen shake: shake = {t:0, mag:0}. On trigger: shake.t = duration, shake.mag = m. Each frame, offset = random within mag * (t/duration). Apply to world transform.
+
+Paddle squash: paddle.squash timer; on hit, squash=1, decays; draw with scaleY = 1 - 0.35*squash, scaleX = 1 + 0.25*squash.
+
+Ball glow color: base white; hue shifts with combo? Ball color = white core + colored halo (color = current combo color or level accent).
+
+Combo: comboCount increments per brick break during a rally (reset on paddle hit? or on life loss?). Classic juice: multiplier increases per brick broken without touching the paddle. Let's do: on paddle hit, combo=0; on brick break, combo++, multiplier = min(combo, 8)? Score = base * (1 + (combo-1)*0.5)? Keep integers: base points by row: top row 50, then 40,30,20,15,10? Actually, top rows are tougher (2 hits) so worth more: row points = [60,50,40,30,20,10]. Multiplier = 1 + floor(combo/3)? Simpler: multiplier = min(1+combo, 5)? Hmm.
+
+Let me do: combo counts consecutive brick breaks since the last paddle touch. Multiplier = min(combo, 5) but starts at 1: mult = Math.min(combo, 5). Score gained = rowPoints * mult. Show "×N" when N>1, and floating text shows the total. Reset combo on paddle hit and on life loss. Show a combo meter in the HUD: small pips or "COMBO ×3" text that pulses.
+
+Sound (WebAudio):
+```js
+const AudioSys = {
+  ctx:null, muted:false,
+  ensure(){ if(!this.ctx){ this.ctx = new (window.AudioContext||window.webkitAudioContext)(); } if(this.ctx.state==='suspended') this.ctx.resume(); },
+  beep(freq, dur, type='square', vol=0.15, slide=0){ ... oscillator + gain envelope ... }
+}
+```
+Sounds:
+- Paddle: square 180→240Hz, 0.06s
+- Wall: triangle 320Hz, 0.04s, low volume
+- Brick: square, freq = 400 + combo*60, 0.07s; 2-hit brick first hit: 250Hz thud
+- Break (2nd hit): 2 tones
+- Life loss: sawtooth 300→80, 0.4s
+- Launch: 500→900 sweep 0.12s
+- Level clear: arpeggio [523,659,784,1047]
+- Game over: [400,300,200,120] slow
+- Combo milestone: small ping
+
+Implement a helper `tone(f0, f1, dur, type, vol, delay=0)`.
+
+Input:
+- mousemove: track mouse world x; paddle target.
+- keydown: ArrowLeft/Right set flags; Space triggers action based on state; M toggles mute.
+- keyup: clear flags.
+- Also touch? Not required; skip (mouse + keys). Maybe add touchmove for mobile as a bonus — cheap to add: touchmove sets paddle x. Let me add it, why not.
+
+Paddle movement: if keys are pressed, move by speed*dt and override the mouse target (set mouseTarget = paddle.x so it doesn't snap back). Standard approach: paddle.x += (keys? keySpeed*dt : 0); if mouse moved recently, lerp paddle.x toward mouseTarget quickly. Simplest: on mousemove, set paddle.x directly (clamped). Keys adjust paddle.x. Both work simultaneously.
+
+Game loop: requestAnimationFrame with dt clamped (max 1/30). Fixed-ish step is fine with dt.
+
+Collision details:
+Ball vs brick: for each alive brick, AABB. Circle-rect closest point test. On hit: determine axis: compare overlapX and overlapY using the previous position or penetration. Use: dx = ball.x - clamp(ball.x, bx, bx+bw); dy = ball.y - clamp(ball.y, by, by+bh); if dx*dx+dy*dy < r*r → hit. Reflection: if |dx| > |dy| → reverse vx (sign of dx), else reverse vy (sign of dy). If both are 0 (center inside), reverse vy. Then damage the brick.
+
+Only process the first brick hit per frame (break the loop) to avoid double reflection.
+
+Ball vs paddle: if vy>0 and ball.y + r >= paddle.y and ball.y - r <= paddle.y + paddle.h and |ball.x - paddle.x| <= paddle.w/2 + r → bounce. rel = (ball.x - paddle.x)/(paddle.w/2 + r) clamped to [-1,1]; angle = rel * 65° (max). speed = min(speed + 6, maxSpeed). vx = speed*sin(angle), vy = -speed*cos(angle). Ensure a minimum |vy| so the ball doesn't go horizontal: if |vy| < 0.25*speed, adjust. Actually, with max angle 65°, cos(65°)=0.42, so vy is at least 0.42*speed — fine.
+
+Walls: x-r<0 → x=r, vx=abs; x+r>W → x=W-r, vx=-abs; y-r<topBound (HUD line? playfield top) → y=topBound+r, vy=abs. Playfield: is the whole world the playfield? The HUD is drawn at the top; the ball bounces at y = HUD_H (e.g., 64). Let me define PLAY_TOP = 64. Bottom: y - r > H → life loss.
+
+Life loss: shake big, red flash vignette, sound, lives--, combo=0. If lives>0 → state 'ready', ball on paddle. Otherwise → 'gameover', update best.
+
+Level clear: state 'levelcomplete', bonus = 500 + lives*100? Show "LEVEL CLEAR" + bonus. Space → level++, if level > 3 → 'win' screen (or treat as a final level clear with "YOU WIN"). Let me do: after level 3 clear → 'win' state, "YOU WIN!" + final score + space to restart.
+
+Ready state: ball follows paddle; draw "PRESS SPACE TO LAUNCH" pulsing. First time, also show the title "BREAKOUT" big.
+
+Now, rendering details for polish:
+
+Background (full canvas, in screen space):
+- Fill with a deep gradient: #070a14 → #0d1226 vertical? Add a subtle radial glow in the center.
+- Stars: ~120 stars with parallax drift (slowly move down-left, wrap), twinkle (alpha sin). Draw in screen space, unaffected by shake (or slightly affected — parallax: shake * 0.3).
+- Maybe a faint grid in the playfield.
+
+Playfield frame: rounded rectangle stroke with glow (level accent color), inner subtle fill (slightly lighter than the background, e.g., rgba(255,255,255,0.02)) and a faint grid line.
+
+HUD:
+- Left: "SCORE" label small (monospace, letter-spaced, dim), value big (monospace bold, white).
+- Center: "LEVEL 1" + level name? Level names: "SECTOR 1"? Cute: "WAVE 1." Let's do "LEVEL 1/3."
+- Right: "LIVES" + 3 ball icons (glowing circles, dim when lost).
+- Below the score: "BEST 12345" small.
+- Combo: when active, show "COMBO ×3" in the center below the level, pulsing, colored.
+
+Fonts:
+- Display: `900 64px Impact, 'Arial Black', 'Franklin Gothic Bold', sans-serif` — Impact is widely available (Windows/mac). Fallback is fine.
+- Monospace: `'Consolas','SF Mono','Menlo','Courier New',monospace`.
+- Letter-spacing on canvas: ctx.letterSpacing works in modern Chrome; not universal. I can manually space by drawing characters, or just use it if available. Simpler: use ctx.letterSpacing = '3px' with a guard (it's a property; setting it on unsupported browsers is harmless). Actually, setting an unknown property on ctx is harmless. Let's use it.
+
+Title screen: big "BREAKOUT" with a chromatic aberration offset (draw 3 times: red offset left, cyan offset right, white on top) — very arcade. Subtitle "A JUICE-FEST ARCADE" or control hints: "MOUSE / ← → MOVE · SPACE LAUNCH · M SOUND."
+
+Level clear screen: dark overlay, "LEVEL 2 CLEAR" big, "BONUS +600," "PRESS SPACE FOR NEXT LEVEL" pulsing. Confetti particles? Spawn celebratory particles.
+
+Game over: "GAME OVER" big in red, "FINAL SCORE 12345," "BEST 23456" (with "NEW BEST!" if updated), "PRESS SPACE TO RESTART."
+
+Win: "YOU WIN!" gold, final score, space to play again.
+
+Screen transitions: fade in the overlay (stateTime).
+
+Extra juice:
+- Ball speed lines when fast? The trail covers it.
+- Paddle edge glow on ball approach? Skip.
+- Brick break: also spawn a ring shockwave (expanding circle stroke that fades). Nice.
+- Life loss: red vignette flash + big shake + slow-mo? Brief slow-mo (timeScale 0.3 for 0.3s) is very juicy. Let me add a hitstop: on brick break, a tiny hitstop (timeScale 0.05 for 40ms)? Hitstop on brick break might feel choppy with many bricks; keep it small (30ms). On life loss: 200ms slow-mo. Implement timeScale with a timer.
+
+- Paddle: gradient, rounded, with a glow, and maybe a small "engine" light.
+
+- Ball: white core with colored glow (color shifts with speed or combo).
+
+HUD:
+- Top bar: SCORE (left), LEVEL (center), LIVES (right, drawn as small ball icons or hearts). Combo indicator.
+- Fonts: display "Impact" for big text; monospace for numbers.
+
+Screens:
+- Start screen? The requirement doesn't explicitly ask for a start screen, but "level clear and game over screens" are required. A start screen is nice: "BREAKOUT — press SPACE to start." Actually, the ready state (ball on paddle, "press SPACE to launch") can double as the start. Let me do this: initial state 'ready' with a title overlay "BREAKOUT" and "SPACE to launch." After game over, "GAME OVER — final score — SPACE to restart." Level clear: "LEVEL X CLEAR — bonus +500 — SPACE for next level." After the final level: "YOU WIN."
+
+Lives: 3, drawn as small glowing balls.
+
+Controls:
+- Mouse move: paddle follows mouse x (in world coordinates).
+- Arrow keys: move paddle at a constant speed (e.g., 900 px/s), with acceleration? Constant speed is fine; hold both? Left takes priority or net.
+- Space: launch / advance screen / restart.
+- M: mute.
+- Prevent page scroll on space/arrows: e.preventDefault().
+
+Ball launch: from the top of the paddle, at a slight random angle.
+
+Ball stuck to paddle in ready state: ball follows the paddle.
+
+Level clear: when all bricks are destroyed (or all destructible bricks). Award a bonus. Show the screen; space → next level (reset bricks, ball to paddle, speed up).
+
+Game over: lives = 0. Show final score, best score (localStorage? "no external assets" — localStorage is fine, it's not an asset). Save high score in localStorage. Show "BEST" in the HUD. Nice touch.
+
+Now, code structure:
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Breakout</title>
+<style>
+  html,body{margin:0;height:100%;overflow:hidden;background:#0b0e1a;}
+  canvas{display:block;width:100vw;height:100vh;cursor:none;}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+// ... game
+</script>
+</body>
+</html>
+```
+
+Cursor: hide the cursor over the canvas since the mouse controls the paddle? The paddle is at the bottom, the mouse is anywhere — hiding the cursor is fine and arcade-like. But on the game over screen, the cursor is hidden and there's no pointer... it's keyboard-driven anyway. Hide the cursor (cursor:none) — the ball/paddle is the feedback. Actually, maybe keep the cursor visible? Hiding feels more game-like. Let's hide it.
+
+World: W=960, H=640.
+
+Layout:
+- HUD height ~64 at the top of the world.
+- Brick area: top offset ~100, 6 rows, brick height 26, gap 6. Columns: 10. Side margins: compute brickW = (W - 2*margin - (cols-1)*gap)/cols, margin ~48.
+- Paddle: y = H - 56, width 110 (shrinks slightly per level? Classic Breakout shrinks the paddle — nice difficulty ramp: level 1: 120, level 2: 104, level 3: 92). Height 16, rounded.
+- Ball radius 7.
+
+Ball speed: base 420 px/s, +40 per level, +8 per paddle hit, cap ~720.
+
+Brick colors per row (level 1 palette):
+Row 0: #ff5d5d (red) — 2 hits
+Row 1: #ffb14d (orange) — 2 hits
+Row 2: #ffe14d (yellow)
+Row 3: #6ee76e? Let me pick a cohesive arcade palette:
+- #ff4d6d (pinkish red)
+- #ff9f43 (orange)
+- #ffe066 (yellow)
+- #51e08a? or #2ed573
+Row 4: #38b6ff / #45c4ff
+Row 5: #b06bff / #a55eea
+
+Level 2 palette: cyan/teal/mint... Level 3: hot magenta/gold... Let me define palettes:
+L1: ['#ff5252','#ff9f43','#ffe066','#2ed573','#3fa7ff','#b06bff']
+L2: ['#ff6b9d','#ffa94d','#ffd43b','#69db7c','#38d9e0'? ...] hmm, let me make it:
+L2: ['#f783ac','#ffd43b','#63e6be','#4dabf7','#9775fa','#ff8787']
+L3: ['#ff4d4d','#ff7847','#ffd60a','#80ed99','#48cae4','#c77dff']
+
+Good enough — colorful.
+
+Brick rendering: rounded rectangle with a vertical gradient (lighter on top), a subtle inner highlight line, and a glow shadow. 2-hit bricks: draw with a slightly different look — maybe a metallic/striped top, or a "shield" look: brighter with a double border; after the first hit, show a crack (draw a crack line) and a darker tone. Cracks: precompute a random crack pattern per brick? Simpler: draw 2-3 jagged lines from a hit point. Store brick.crack = true and draw a deterministic pseudo-random crack based on the brick's index.
+
+Brick hit feedback: brick.flash timer (white overlay), brick.wobble (offset oscillation).
+
+Particles: array of {x,y,vx,vy,life,maxLife,size,color,rot,vr,shape}. Update with gravity 900, fade. Draw as small rotating rectangles or circles. Use 'lighter' composite for glow particles.
+
+Trail: array of {x,y,life}. Push ball position each frame (or every other frame). Draw circles with decreasing radius and alpha, 'lighter'.
+
+Floating text: {x,y,text,life,color,size}.
+
+Screen shake: shake = {t:0, mag:0}. On trigger: shake.t = duration, shake.mag = m. Each frame, offset = random within mag * (t/duration). Apply to world transform.
+
+Paddle squash: paddle.squash timer; on hit, squash=1, decays; draw with scaleY = 1 - 0.35*squash, scaleX = 1 + 0.25*squash.
+
+Ball glow color: base white; hue shifts with combo? Ball color = white core + colored halo (color = current combo color or level accent).
+
+Combo: comboCount increments per brick break during a rally (reset on paddle hit? or on life loss?). Classic juice: multiplier increases per brick broken without touching the paddle. Let's do: on paddle hit, combo=0; on brick break, combo++, multiplier = min(combo, 8)? Score = base * (1 + (combo-1)*0.5)? Keep integers: base points by row: top row 50, then 40,30,20,15,10? Actually, top rows are tougher (2 hits) so worth more: row points = [60,50,40,30,20,10]. Multiplier = 1 + floor(combo/3)? Simpler: multiplier = min(1+combo, 5)? Hmm.
+
+Let me do: combo counts consecutive brick breaks since the last paddle touch. Multiplier = min(combo, 5) but starts at 1: mult = Math.min(combo, 5). Score gained = rowPoints * mult. Show "×N" when N>1, and floating text shows the total. Reset combo on paddle hit and on life loss. Show a combo meter in the HUD: small pips or "COMBO ×3" text that pulses.
+
+Sound (WebAudio):
+```js
+const AudioSys = {
+  ctx:null, muted:false,
+  ensure(){ if(!this.ctx){ this.ctx = new (window.AudioContext||window.webkitAudioContext)(); } if(this.ctx.state==='suspended') this.ctx.resume(); },
+  beep(freq, dur, type='square', vol=0.15, slide=0){ ... oscillator + gain envelope ... }
+}
+```
+Sounds:
+- Paddle: square 180→240Hz, 0.06s
+- Wall: triangle 320Hz, 0.04s, low volume
+- Brick: square, freq = 400 + combo*60, 0.07s; 2-hit brick first hit: 250Hz thud
+- Break (2nd hit): 2 tones
+- Life loss: sawtooth 300→80, 0.4s
+- Launch: 500→900 sweep 0.12s
+- Level clear: arpeggio [523,659,784,1047]
+- Game over: [400,300,200,120] slow
+- Combo milestone: small ping
+
+Implement a helper `tone(f0, f1, dur, type, vol, delay=0)`.
+
+Input:
+- mousemove: track mouse world x; paddle target.
+- keydown: ArrowLeft/Right set flags; Space triggers action based on state; M toggles mute.
+- keyup: clear flags.
+- Also touch? Not required; skip (mouse + keys). Maybe add touchmove for mobile as a bonus — cheap to add: touchmove sets paddle x. Let me add it, why not.
+
+Paddle movement: if keys are pressed, move by speed*dt and override the mouse target (set mouseTarget = paddle.x so it doesn't snap back). Standard approach: paddle.x += (keys? keySpeed*dt : 0); if mouse moved recently, lerp paddle.x toward mouseTarget quickly. Simplest: on mousemove, set paddle.x directly (clamped). Keys adjust paddle.x. Both work simultaneously.
+
+Game loop: requestAnimationFrame with dt clamped (max 1/30). Fixed-ish step is fine with dt.
+
+Collision details:
+Ball vs brick: for each alive brick, AABB. Circle-rect closest point test. On hit: determine axis: compare overlapX and overlapY using the previous position or penetration. Use: dx = ball.x - clamp(ball.x, bx, bx+bw); dy = ball.y - clamp(ball.y, by, by+bh); if dx*dx+dy*dy < r*r → hit. Reflection: if |dx| > |dy| → reverse vx (sign of dx), else reverse vy (sign of dy). If both are 0 (center inside), reverse vy. Then damage the brick.
+
+Only process the first brick hit per frame (break the loop) to avoid double reflection.
+
+Ball vs paddle: if vy>0 and ball.y + r >= paddle.y and ball.y - r <= paddle.y + paddle.h and |ball.x - paddle.x| <= paddle.w/2 + r → bounce. rel = (ball.x - paddle.x)/(paddle.w/2 + r) clamped to [-1,1]; angle = rel * 65° (max). speed = min(speed + 6, maxSpeed). vx = speed*sin(angle), vy = -speed*cos(angle). Ensure a minimum |vy| so the ball doesn't go horizontal: if |vy| < 0.25*speed, adjust. Actually, with max angle 65°, cos(65°)=0.42, so vy is at least 0.42*speed — fine.
+
+Walls: x-r<0 → x=r, vx=abs; x+r>W → x=W-r, vx=-abs; y-r<topBound (HUD line? playfield top) → y=topBound+r, vy=abs. Playfield: is the whole world the playfield? The HUD is drawn at the top; the ball bounces at y = HUD_H (e.g., 64). Let me define PLAY_TOP = 64. Bottom: y - r > H → life loss.
+
+Life loss: shake big, red flash vignette, sound, lives--, combo=0. If lives>0 → state 'ready', ball on paddle. Otherwise → 'gameover', update best.
+
+Level clear: state 'levelcomplete', bonus = 500 + lives*100? Show "LEVEL CLEAR" + bonus. Space → level++, if level > 3 → 'win' screen (or treat as a final level clear with "YOU WIN"). Let me do: after level 3 clear → 'win' state, "YOU WIN!" + final score + space to restart.
+
+Ready state: ball follows paddle; draw "PRESS SPACE TO LAUNCH" pulsing. First time, also show the title "BREAKOUT" big.
+
+Now, rendering details for polish:
+
+Background (full canvas, in screen space):
+- Fill with a deep gradient: #070a14 → #0d1226 vertical? Add a subtle radial glow in the center.
+- Stars: ~120 stars with parallax drift (slowly move down-left, wrap), twinkle (alpha sin). Draw in screen space, unaffected by shake (or slightly affected — parallax: shake * 0.3).
+- Maybe a faint grid in the playfield.
+
+Playfield frame: rounded rectangle stroke with glow (level accent color), inner subtle fill (slightly lighter than the background, e.g., rgba(255,255,255,0.02)) and a faint grid line.
+
+HUD:
+- Left: "SCORE" label small (monospace, letter-spaced, dim), value big (monospace bold, white).
+- Center: "LEVEL 1" + level name? Level names: "SECTOR 1"? Cute: "WAVE 1." Let's do "LEVEL 1/3."
+- Right: "LIVES" + 3 ball icons (glowing circles, dim when lost).
+- Below the score: "BEST 12345" small.
+- Combo: when active, show "COMBO ×3" in the center below the level, pulsing, colored.
+
+Fonts:
+- Display: `900 64px Impact, 'Arial Black', 'Franklin Gothic Bold', sans-serif` — Impact is widely available (Windows/mac). Fallback is fine.
+- Monospace: `'Consolas','SF Mono','Menlo','Courier New',monospace`.
+- Letter-spacing on canvas: ctx.letterSpacing works in modern Chrome; not universal. I can manually space by drawing characters, or just use it if available. Simpler: use ctx.letterSpacing = '3px' with a guard (it's a property; setting it on unsupported browsers is harmless). Actually, setting an unknown property on ctx is harmless. Let's use it.
+
+Title screen: big "BREAKOUT" with a chromatic aberration offset (draw 3 times: red offset left, cyan offset right, white on top) — very arcade. Subtitle "A JUICE-FEST ARCADE" or control hints: "MOUSE / ← → MOVE · SPACE LAUNCH · M SOUND."
+
+Level clear screen: dark overlay, "LEVEL 2 CLEAR" big, "BONUS +600," "PRESS SPACE FOR NEXT LEVEL" pulsing. Confetti particles? Spawn celebratory particles.
+
+Game over: "GAME OVER" big in red, "FINAL SCORE 12345," "BEST 23456" (with "NEW BEST!" if updated), "PRESS SPACE TO RESTART."
+
+Win: "YOU WIN!" gold, final score, space to play again.
+
+Screen transitions: fade in the overlay (stateTime).
+
+Extra juice:
+- Ball speed lines when fast? The trail covers it.
+- Paddle edge glow on ball approach? Skip.
+- Brick break: also spawn a ring shockwave (expanding circle stroke that fades). Nice.
+- Life loss: red vignette flash + big shake + slow-mo? Brief slow-mo (timeScale 0.3 for 0.3s) is very juicy. Let me add a hitstop: on brick break, a tiny hitstop (timeScale 0.05 for 40ms)? Hitstop on brick break might feel choppy with many bricks; keep it small (30ms). On life loss: 200ms slow-mo. Implement timeScale with a timer.
+
+- Paddle: gradient, rounded, with a glow, and maybe a small "engine" light.
+
+- Ball: white core with colored glow (color shifts with speed or combo).
+
+HUD:
+- Top bar: SCORE (left), LEVEL (center), LIVES (right, drawn as small ball icons or hearts). Combo indicator.
+- Fonts: display "Impact" for big text; monospace for numbers.
+
+Screens:
+- Start screen? The requirement doesn't explicitly ask for a start screen, but "level clear and game over screens" are required. A start screen is nice: "BREAKOUT — press SPACE to start." Actually, the ready state (ball on paddle, "press SPACE to launch") can double as the start. Let me do this: initial state 'ready' with a title overlay "BREAKOUT" and "SPACE to launch." After game over, "GAME OVER — final score — SPACE to restart." Level clear: "LEVEL X CLEAR — bonus +500 — SPACE for next level." After the final level: "YOU WIN."
+
+Lives: 3, drawn as small glowing balls.
+
+Controls:
+- Mouse move: paddle follows mouse x (in world coordinates).
+- Arrow keys: move paddle at a constant speed (e.g., 900 px/s), with acceleration? Constant speed is fine; hold both? Left takes priority or net.
+- Space: launch / advance screen / restart.
+- M: mute.
+- Prevent page scroll on space/arrows: e.preventDefault().
+
+Ball launch: from the top of the paddle, at a slight random angle.
+
+Ball stuck to paddle in ready state: ball follows the paddle.
+
+Level clear: when all bricks are destroyed (or all destructible bricks). Award a bonus. Show the screen; space → next level (reset bricks, ball to paddle, speed up).
+
+Game over: lives = 0. Show final score, best score (localStorage? "no external assets" — localStorage is fine, it's not an asset). Save high score in localStorage. Show "BEST" in the HUD. Nice touch.
+
+Now, code structure:
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Breakout</title>
+<style>
+  html,body{margin:0;height:100%;overflow:hidden;background:#0b0e1a;}
+  canvas{display:block;width:100vw;height:100vh;cursor:none;}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+// ... game
+</script>
+</body>
+</html>
+```
+
+Cursor: hide the cursor over the canvas since the mouse controls the paddle? The paddle is at the bottom, the mouse is anywhere — hiding the cursor is fine and arcade-like. But on the game over screen, the cursor is hidden and there's no pointer... it's keyboard-driven anyway. Hide the cursor (cursor:none) — the ball/paddle is the feedback. Actually, maybe keep the cursor visible? Hiding feels more game-like. Let's hide it.
+
+World: W=960, H=640.
+
+Layout:
+- HUD height ~64 at the top of the world.
+- Brick area: top offset ~100, 6 rows, brick height 26, gap 6. Columns: 10. Side margins: compute brickW = (W - 2*margin - (cols-1)*gap)/cols, margin ~48.
+- Paddle: y = H - 56, width 110 (shrinks slightly per level? Classic Breakout shrinks the paddle — nice difficulty ramp: level 1: 120, level 2: 104, level 3: 92). Height 16, rounded.
+- Ball radius 7.
+
+Ball speed: base 420 px/s, +40 per level, +8 per paddle hit, cap ~720.
+
+Brick colors per row (level 1 palette):
+Row 0: #ff5d5d (red) — 2 hits
+Row 1: #ffb14d (orange) — 2 hits
+Row 2: #ffe14d (yellow)
+Row 3: #6ee76e? Let me pick a cohesive arcade palette:
+- #ff4d6d (pinkish red)
+- #ff9f43 (orange)
+- #ffe066 (yellow)
+- #51e08a? or #2ed573
+Row 4: #38b6ff / #45c4ff
+Row 5: #b06bff / #a55eea
+
+Level 2 palette: cyan/teal/mint... Level 3: hot magenta/gold... Let me define palettes:
+L1: ['#ff5252','#ff9f43','#ffe066','#2ed573','#3fa7ff','#b06bff']
+L2: ['#ff6b9d','#ffa94d','#ffd43b','#69db7c','#38d9e0'? ...] hmm, let me make it:
+L2: ['#f783ac','#ffd43b','#63e6be','#4dabf7','#9775fa','#ff8787']
+L3: ['#ff4d4d','#ff7847','#ffd60a','#80ed99','#48cae4','#c77dff']
+
+Good enough — colorful.
+
+Brick rendering: rounded rectangle with a vertical gradient (lighter on top), a subtle inner highlight line, and a glow shadow. 2-hit bricks: draw with a slightly different look — maybe a metallic/striped top, or a "shield" look: brighter with a double border; after the first hit, show a crack (draw a crack line) and a darker tone. Cracks: precompute a random crack pattern per brick? Simpler: draw 2-3 jagged lines from a hit point. Store brick.crack = true and draw a deterministic pseudo-random crack based on the brick's index.
+
+Brick hit feedback: brick.flash timer (white overlay), brick.wobble (offset oscillation).
+
+Particles: array of {x,y,vx,vy,life,maxLife,size,color,rot,vr,shape}. Update with gravity 900, fade. Draw as small rotating rectangles or circles. Use 'lighter' composite for glow particles.
+
+Trail: array of {x,y,life}. Push ball position each frame (or every other frame). Draw circles with decreasing radius and alpha, 'lighter'.
+
+Floating text: {x,y,text,life,color,size}.
+
+Screen shake: shake = {t:0, mag:0}. On trigger: shake.t = duration, shake.mag = m. Each frame, offset = random within mag * (t/duration). Apply to world transform.
+
+Paddle squash: paddle.squash timer; on hit, squash=1, decays; draw with scaleY = 1 - 0.35*squash, scaleX = 1 + 0.25*squash.
+
+Ball glow color: base white; hue shifts with combo? Ball color = white core + colored halo (color = current combo color or level accent).
+
+Combo: comboCount increments per brick break during a rally (reset on paddle hit? or on life loss?). Classic juice: multiplier increases per brick broken without touching the paddle. Let's do: on paddle hit, combo=0; on brick break, combo++, multiplier = min(combo, 8)? Score = base * (1 + (combo-1)*0.5)? Keep integers: base points by row: top row 50, then 40,30,20,15,10? Actually, top rows are tougher (2 hits) so worth more: row points = [60,50,40,30,20,10]. Multiplier = 1 + floor(combo/3)? Simpler: multiplier = min(1+combo, 5)? Hmm.
+
+Let me do: combo counts consecutive brick breaks since the last paddle touch. Multiplier = min(combo, 5) but starts at 1: mult = Math.min(combo, 5). Score gained = rowPoints * mult. Show "×N" when N>1, and floating text shows the total. Reset combo on paddle hit and on life loss. Show a combo meter in the HUD: small pips or "COMBO ×3" text that pulses.
+
+Sound (WebAudio):
+```js
+const AudioSys = {
+  ctx:null, muted:false,
+  ensure(){ if(!this.ctx){ this.ctx = new (window.AudioContext||window.webkitAudioContext)(); } if(this.ctx.state==='suspended') this.ctx.resume(); },
+  beep(freq, dur, type='square', vol=0.15, slide=0){ ... oscillator + gain envelope ... }
+}
+```
+Sounds:
+- Paddle: square 180→240Hz, 0.06s
+- Wall: triangle 320Hz, 0.04s, low volume
+- Brick: square, freq = 400 + combo*60, 0.07s; 2-hit brick first hit: 250Hz thud
+- Break (2nd hit): 2 tones
+- Life loss: sawtooth 300→80, 0.4s
+- Launch: 500→900 sweep 0.12s
+- Level clear: arpeggio [523,659,784,1047]
+- Game over: [400,300,200,120] slow
+- Combo milestone: small ping
+
+Implement a helper `tone(f0, f1, dur, type, vol, delay=0)`.
+
+Input:
+- mousemove: track mouse world x; paddle target.
+- keydown: ArrowLeft/Right set flags; Space triggers action based on state; M toggles mute.
+- keyup: clear flags.
+- Also touch? Not required; skip (mouse + keys). Maybe add touchmove for mobile as a bonus — cheap to add: touchmove sets paddle x. Let me add it, why not.
+
+Paddle movement: if keys are pressed, move by speed*dt and override the mouse target (set mouseTarget = paddle.x so it doesn't snap back). Standard approach: paddle.x += (keys? keySpeed*dt : 0); if mouse moved recently, lerp paddle.x toward mouseTarget quickly. Simplest: on mousemove, set paddle.x directly (clamped). Keys adjust paddle.x. Both work simultaneously.
+
+Game loop: requestAnimationFrame with dt clamped (max 1/30). Fixed-ish step is fine with dt.
+
+Collision details:
+Ball vs brick: for each alive brick, AABB. Circle-rect closest point test. On hit: determine axis: compare overlapX and overlapY using the previous position or penetration. Use: dx = ball.x - clamp(ball.x, bx, bx+bw); dy = ball.y - clamp(ball.y, by, by+bh); if dx*dx+dy*dy < r*r → hit. Reflection: if |dx| > |dy| → reverse vx (sign of dx), else reverse vy (sign of dy). If both are 0 (center inside), reverse vy. Then damage the brick.
+
+Only process the first brick hit per frame (break the loop) to avoid double reflection.
+
+Ball vs paddle: if vy>0 and ball.y + r >= paddle.y and ball.y - r <= paddle.y + paddle.h and |ball.x - paddle.x| <= paddle.w/2 + r → bounce. rel = (ball.x - paddle.x)/(paddle.w/2 + r) clamped to [-1,1]; angle = rel * 65° (max). speed = min(speed + 6, maxSpeed). vx = speed*sin(angle), vy = -speed*cos(angle). Ensure a minimum |vy| so the ball doesn't go horizontal: if |vy| < 0.25*speed, adjust. Actually, with max angle 65°, cos(65°)=0.42, so vy is at least 0.42*speed — fine.
+
+Walls: x-r<0 → x=r, vx=abs; x+r>W → x=W-r, vx=-abs; y-r<topBound (HUD line? playfield top) → y=topBound+r, vy=abs. Playfield: is the whole world the playfield? The HUD is drawn at the top; the ball bounces at y = HUD_H (e.g., 64). Let me define PLAY_TOP = 64. Bottom: y - r > H → life loss.
+
+Life loss: shake big, red flash vignette, sound, lives--, combo=0. If lives>0 → state 'ready', ball on paddle. Otherwise → 'gameover', update best.
+
+Level clear: state 'levelcomplete', bonus = 500 + lives*100? Show "LEVEL CLEAR" + bonus. Space → level++, if level > 3 → 'win' screen (or treat as a final level clear with "YOU WIN"). Let me do: after level 3 clear → 'win' state, "YOU WIN!" + final score + space to restart.
+
+Ready state: ball follows paddle; draw "PRESS SPACE TO LAUNCH" pulsing. First time, also show the title "BREAKOUT" big.
+
+Now, rendering details for polish:
+
+Background (full canvas, in screen space):
+- Fill with a deep gradient: #070a14 → #0d1226 vertical? Add a subtle radial glow in the center.
+- Stars: ~120 stars with parallax drift (slowly move down-left, wrap), twinkle (alpha sin). Draw in screen space, unaffected by shake (or slightly affected — parallax: shake * 0.3).
+- Maybe a faint grid in the playfield.
+
+Playfield frame: rounded rectangle stroke with glow (level accent color), inner subtle fill (slightly lighter than the background, e.g., rgba(255,255,255,0.02)) and a faint grid line.
+
+HUD:
+- Left: "SCORE" label small (monospace, letter-spaced, dim), value big (monospace bold, white).
+- Center: "LEVEL 1" + level name? Level names: "SECTOR 1"? Cute: "WAVE 1." Let's do "LEVEL 1/3."
+- Right: "LIVES" + 3 ball icons (glowing circles, dim when lost).
+- Below the score: "BEST 12345" small.
+- Combo: when active, show "COMBO ×3" in the center below the level, pulsing, colored.
+
+Fonts:
+- Display: `900 64px Impact, 'Arial Black', 'Franklin Gothic Bold', sans-serif` — Impact is widely available (Windows/mac). Fallback is fine.
+- Monospace: `'Consolas','SF Mono','Menlo','Courier New',monospace`.
+- Letter-spacing on canvas: ctx.letterSpacing works in modern Chrome; not universal. I can manually space by drawing characters, or just use it if available. Simpler: use ctx.letterSpacing = '3px' with a guard (it's a property; setting it on unsupported browsers is harmless). Actually, setting an unknown property on ctx is harmless. Let's use it.
+
+Title screen: big "BREAKOUT" with a chromatic aberration offset (draw 3 times: red offset left, cyan offset right, white on top) — very arcade. Subtitle "A JUICE-FEST ARCADE" or control hints: "MOUSE / ← → MOVE · SPACE LAUNCH · M SOUND."
+
+Level clear screen: dark overlay, "LEVEL 2 CLEAR" big, "BONUS +600," "PRESS SPACE FOR NEXT LEVEL" pulsing. Confetti particles? Spawn celebratory particles.
+
+Game over: "GAME OVER" big in red, "FINAL SCORE 12345," "BEST 23456" (with "NEW BEST!" if updated), "PRESS SPACE TO RESTART."
+
+Win: "YOU WIN!" gold, final score, space to play again.
+
+Screen transitions: fade in the overlay (stateTime).
+
+Extra juice:
+- Ball speed lines when fast? The trail covers it.
+- Paddle edge glow on ball approach? Skip.
+- Brick break: also spawn a ring shockwave (expanding circle stroke that fades). Nice.
+- Life loss: red vignette flash + big shake + slow-mo? Brief slow-mo (timeScale 0.3 for 0.3s) is very juicy. Let me add a hitstop: on brick break, a tiny hitstop (timeScale 0.05 for 40ms)? Hitstop on brick break might feel choppy with many bricks; keep it small (30ms). On life loss: 200ms slow-mo. Implement timeScale with a timer.
+
+- Paddle: gradient, rounded, with a glow, and maybe a small "engine" light.
+
+- Ball: white core with colored glow (color shifts with speed or combo).
+
+HUD:
+- Top bar: SCORE (left), LEVEL (center), LIVES (right, drawn as small ball icons or hearts). Combo indicator.
+- Fonts: display "Impact" for big text; monospace for numbers.
+
+Screens:
+- Start screen? The requirement doesn't explicitly ask for a start screen, but "level clear and game over screens" are required. A start screen is nice: "BREAKOUT — press SPACE to start." Actually, the ready state (ball on paddle, "press SPACE to launch") can double as the start. Let me do this: initial state 'ready' with a title overlay "BREAKOUT" and "SPACE to launch." After game over, "GAME OVER — final score — SPACE to restart." Level clear: "LEVEL X CLEAR — bonus +500 — SPACE for next level." After the final level: "YOU WIN."
+
+Lives: 3, drawn as small glowing balls.
+
+Controls:
+- Mouse move: paddle follows mouse x (in world coordinates).
+- Arrow keys: move paddle at a constant speed (e.g., 900 px/s), with acceleration? Constant speed is fine; hold both? Left takes priority or net.
+- Space: launch / advance screen / restart.
+- M: mute.
+- Prevent page scroll on space/arrows: e.preventDefault().
+
+Ball launch: from the top of the paddle, at a slight random angle.
+
+Ball stuck to paddle in ready state: ball follows the paddle.
+
+Level clear: when all bricks are destroyed (or all destructible bricks). Award a bonus. Show the screen; space → next level (reset bricks, ball to paddle, speed up).
+
+Game over: lives = 0. Show final score, best score (localStorage? "no external assets" — localStorage is fine, it's not an asset). Save high score in localStorage. Show "BEST" in the HUD. Nice touch.
+
+Now, code structure:
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Breakout</title>
+<style>
+  html,body{margin:0;height:100%;overflow:hidden;background:#0b0e1a;}
+  canvas{display:block;width:100vw;height:100vh;cursor:none;}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+// ... game
+</script>
+</body>
+</html>
+```
+
+Cursor: hide the cursor over the canvas since the mouse controls the paddle? The paddle is at the bottom, the mouse is anywhere — hiding the cursor is fine and arcade-like. But on the game over screen, the cursor is hidden and there's no pointer... it's keyboard-driven anyway. Hide the cursor (cursor:none) — the ball/paddle is the feedback. Actually, maybe keep the cursor visible? Hiding feels more game-like. Let's hide it.
+
+World: W=960, H=640.
+
+Layout:
+- HUD height ~64 at the top of the world.
+- Brick area: top offset ~100, 6 rows, brick height 26, gap 6. Columns: 10. Side margins: compute brickW = (W - 2*margin - (cols-1)*gap)/cols, margin ~48.
+- Paddle: y = H - 56, width 110 (shrinks slightly per level? Classic Breakout shrinks the paddle — nice difficulty ramp: level 1: 120, level 2: 104, level 3: 92). Height 16, rounded.
+- Ball radius 7.
+
+Ball speed: base 420 px/s, +40 per level, +8 per paddle hit, cap ~720.
+
+Brick colors per row (level 1 palette):
+Row 0: #ff5d5d (red) — 2 hits
+Row 1: #ffb14d (orange) — 2 hits
+Row 2: #ffe14d (yellow)
+Row 3: #6ee76e? Let me pick a cohesive arcade palette:
+- #ff4d6d (pinkish red)
+- #ff9f43 (orange)
+- #ffe066 (yellow)
+- #51e08a? or #2ed573
+Row 4: #38b6ff / #45c4ff
+Row 5: #b06bff / #a55eea
+
+Level 2 palette: cyan/teal/mint... Level 3: hot magenta/gold... Let me define palettes:
+L1: ['#ff5252','#ff9f43','#ffe066','#2ed573','#3fa7ff','#b06bff']
+L2: ['#ff6b9d','#ffa94d','#ffd43b','#69db7c','#38d9e0'? ...] hmm, let me make it:
+L2: ['#f783ac','#ffd43b','#63e6be','#4dabf7','#9775fa','#ff8787']
+L3: ['#ff4d4d','#ff7847','#ffd60a','#80ed99','#48cae4','#c77dff']
+
+Good enough — colorful.
+
+Brick rendering: rounded rectangle with a vertical gradient (lighter on top), a subtle inner highlight line, and a glow shadow. 2-hit bricks: draw with a slightly different look — maybe a metallic/striped top, or a "shield" look: brighter with a double border; after the first hit, show a crack (draw a crack line) and a darker tone. Cracks: precompute a random crack pattern per brick? Simpler: draw 2-3 jagged lines from a hit point. Store brick.crack = true and draw a deterministic pseudo-random crack based on the brick's index.
+
+Brick hit feedback: brick.flash timer (white overlay), brick.wobble (offset oscillation).
+
+Particles: array of {x,y,vx,vy,life,maxLife,size,color,rot,vr,shape}. Update with gravity 900, fade. Draw as small rotating rectangles or circles. Use 'lighter' composite for glow particles.
+
+Trail: array of {x,y,life}. Push ball position each frame (or every other frame). Draw circles with decreasing radius and alpha, 'lighter'.
+
+Floating text: {x,y,text,life,color,size}.
+
+Screen shake: shake = {t:0, mag:0}. On trigger: shake.t = duration, shake.mag = m. Each frame, offset = random within mag * (t/duration). Apply to world transform.
+
+Paddle squash: paddle.squash timer; on hit, squash=1, decays; draw with scaleY = 1 - 0.35*squash, scaleX = 1 + 0.25*squash.
+
+Ball glow color: base white; hue shifts with combo? Ball color = white core + colored halo (color = current combo color or level accent).
+
+Combo: comboCount increments per brick break during a rally (reset on paddle hit? or on life loss?). Classic juice: multiplier increases per brick broken without touching the paddle. Let's do: on paddle hit, combo=0; on brick break, combo++, multiplier = min(combo, 8)? Score = base * (1 + (combo-1)*0.5)? Keep integers: base points by row: top row 50, then 40,30,20,15,10? Actually, top rows are tougher (2 hits) so worth more: row points = [60,50,40,30,20,10]. Multiplier = 1 + floor(combo/3)? Simpler: multiplier = min(1+combo, 5)? Hmm.
+
+Let me do: combo counts consecutive brick breaks since the last paddle touch. Multiplier = min(combo, 5) but starts at 1: mult = Math.min(combo, 5). Score gained = rowPoints * mult. Show "×N" when N>1, and floating text shows the total. Reset combo on paddle hit and on life loss. Show a combo meter in the HUD: small pips or "COMBO ×3" text that pulses.
+
+Sound (WebAudio):
+```js
+const AudioSys = {
+  ctx:null, muted:false,
+  ensure(){ if(!this.ctx){ this.ctx = new (window.AudioContext||window.webkitAudioContext)(); } if(this.ctx.state==='suspended') this.ctx.resume(); },
+  beep(freq, dur, type='square', vol=0.15, slide=0){ ... oscillator + gain envelope ... }
+}
+```
+Sounds:
+- Paddle: square 180→240Hz, 0.06s
+- Wall: triangle 320Hz, 0.04s, low volume
+- Brick: square, freq = 400 + combo*60, 0.07s; 2-hit brick first hit: 250Hz thud
+- Break (2nd hit): 2 tones
+- Life loss: sawtooth 300→80, 0.4s
+- Launch: 500→900 sweep 0.12s
+- Level clear: arpeggio [523,659,784,1047]
+- Game over: [400,300,200,120] slow
+- Combo milestone: small ping
+
+Implement a helper `tone(f0, f1, dur, type, vol, delay=0)`.
+
+Input:
+- mousemove: track mouse world x; paddle target.
+- keydown: ArrowLeft/Right set flags; Space triggers action based on state; M toggles mute.
+- keyup: clear flags.
+- Also touch? Not required; skip (mouse + keys). Maybe add touchmove for mobile as a bonus — cheap to add: touchmove sets paddle x. Let me add it, why not.
+
+Paddle movement: if keys are pressed, move by speed*dt and override the mouse target (set mouseTarget = paddle.x so it doesn't snap back). Standard approach: paddle.x += (keys? keySpeed*dt : 0); if mouse moved recently, lerp paddle.x toward mouseTarget quickly. Simplest: on mousemove, set paddle.x directly (clamped). Keys adjust paddle.x. Both work simultaneously.
+
+Game loop: requestAnimationFrame with dt clamped (max 1/30). Fixed-ish step is fine with dt.
+
+Collision details:
+Ball vs brick: for each alive brick, AABB. Circle-rect closest point test. On hit: determine axis: compare overlapX and overlapY using the previous position or penetration. Use: dx = ball.x - clamp(ball.x, bx, bx+bw); dy = ball.y - clamp(ball.y, by, by+bh); if dx*dx+dy*dy < r*r → hit. Reflection: if |dx| > |dy| → reverse vx (sign of dx), else reverse vy (sign of dy). If both are 0 (center inside), reverse vy. Then damage the brick.
+
+Only process the first brick hit per frame (break the loop) to avoid double reflection.
+
+Ball vs paddle: if vy>0 and ball.y + r >= paddle.y and ball.y - r <= paddle.y + paddle.h and |ball.x - paddle.x| <= paddle.w/2 + r → bounce. rel = (ball.x - paddle.x)/(paddle.w/2 + r) clamped to [-1,1]; angle = rel * 65° (max). speed = min(speed + 6, maxSpeed). vx = speed*sin(angle), vy = -speed*cos(angle). Ensure a minimum |vy| so the ball doesn't go horizontal: if |vy| < 0.25*speed, adjust. Actually, with max angle 65°, cos(65°)=0.42, so vy is at least 0.42*speed — fine.
+
+Walls: x-r<0 → x=r, vx=abs; x+r>W → x=W-r, vx=-abs; y-r<topBound (HUD line? playfield top) → y=topBound+r, vy=abs. Playfield: is the whole world the playfield? The HUD is drawn at the top; the ball bounces at y = HUD_H (e.g., 64). Let me define PLAY_TOP = 64. Bottom: y - r > H → life loss.
+
+Life loss: shake big, red flash vignette, sound, lives--, combo=0. If lives>0 → state 'ready', ball on paddle. Otherwise → 'gameover', update best.
+
+Level clear: state 'levelcomplete', bonus = 500 + lives*100? Show "LEVEL CLEAR" + bonus. Space → level++, if level > 3 → 'win' screen (or treat as a final level clear with "YOU WIN"). Let me do: after level 3 clear → 'win' state, "YOU WIN!" + final score + space to restart.
+
+Ready state: ball follows paddle; draw "PRESS SPACE TO LAUNCH" pulsing. First time, also show the title "BREAKOUT" big.
+
+Now, rendering details for polish:
+
+Background (full canvas, in screen space):
+- Fill with a deep gradient: #070a14 → #0d1226 vertical? Add a subtle radial glow in the center.
+- Stars: ~120 stars with parallax drift (slowly move down-left, wrap), twinkle (alpha sin). Draw in screen space, unaffected by shake (or slightly affected — parallax: shake * 0.3).
+- Maybe a faint grid in the playfield.
+
+Playfield frame: rounded rectangle stroke with glow (level accent color), inner subtle fill (slightly lighter than the background, e.g., rgba(255,255,255,0.02)) and a faint grid line.
+
+HUD:
+- Left: "SCORE" label small (monospace, letter-spaced, dim), value big (monospace bold, white).
+- Center: "LEVEL 1" + level name? Level names: "SECTOR 1"? Cute: "WAVE 1." Let's do "LEVEL 1/3."
+- Right: "LIVES" + 3 ball icons (glowing circles, dim when lost).
+- Below the score: "BEST 12345" small.
+- Combo: when active, show "COMBO ×3" in the center below the level, pulsing, colored.
+
+Fonts:
+- Display: `900 64px Impact, 'Arial Black', 'Franklin Gothic Bold', sans-serif` — Impact is widely available (Windows/mac). Fallback is fine.
+- Monospace: `'Consolas','SF Mono','Menlo','Courier New',monospace`.
+- Letter-spacing on canvas: ctx.letterSpacing works in modern Chrome; not universal. I can manually space by drawing characters, or just use it if available. Simpler: use ctx.letterSpacing = '3px' with a guard (it's a property; setting it on unsupported browsers is harmless). Actually, setting an unknown property on ctx is harmless. Let's use it.
+
+Title screen: big "BREAKOUT" with a chromatic aberration offset (draw 3 times: red offset left, cyan offset right, white on top) — very arcade. Subtitle "A JUICE-FEST ARCADE" or control hints: "MOUSE / ← → MOVE · SPACE LAUNCH · M SOUND."
+
+Level clear screen: dark overlay, "LEVEL 2 CLEAR" big, "BONUS +600," "PRESS SPACE FOR NEXT LEVEL" pulsing. Confetti particles? Spawn celebratory particles.
+
+Game over: "GAME OVER" big in red, "FINAL SCORE 12345," "BEST 23456" (with "NEW BEST!" if updated), "PRESS SPACE TO RESTART."
+
+Win: "YOU WIN!" gold, final score, space to play again.
+
+Screen transitions: fade in the overlay (stateTime).
+
+Extra juice:
+- Ball speed lines when fast? The trail covers it.
+- Paddle edge glow on ball approach? Skip.
+- Brick break: also spawn a ring shockwave (expanding circle stroke that fades). Nice.
+- Life loss: red vignette flash + big shake + slow-mo? Brief slow-mo (timeScale 0.3 for 0.3s) is very juicy. Let me add a hitstop: on brick break, a tiny hitstop (timeScale 0.05 for 40ms)? Hitstop on brick break might feel choppy with many bricks; keep it small (30ms). On life loss: 200ms slow-mo. Implement timeScale with a timer.
+
+- Paddle: gradient, rounded, with a glow, and maybe a small "engine" light.
+
+- Ball: white core with colored glow (color shifts with speed or combo).
+
+HUD:
+- Top bar: SCORE (left), LEVEL (center), LIVES (right, drawn as small ball icons or hearts). Combo indicator.
+- Fonts: display "Impact" for big text; monospace for numbers.
+
+Screens:
+- Start screen? The requirement doesn't explicitly ask for a start screen, but "level clear and game over screens" are required. A start screen is nice: "BREAKOUT — press SPACE to start." Actually, the ready state (ball on paddle, "press SPACE to launch") can double as the start. Let me do this: initial state 'ready' with a title overlay "BREAKOUT" and "SPACE to launch." After game over, "GAME OVER — final score — SPACE to restart." Level clear: "LEVEL X CLEAR — bonus +500 — SPACE for next level." After the final level: "YOU WIN."
+
+Lives: 3, drawn as small glowing balls.
+
+Controls:
+- Mouse move: paddle follows mouse x (in world coordinates).
+- Arrow keys: move paddle at a constant speed (e.g., 900 px/s), with acceleration? Constant speed is fine; hold both? Left takes priority or net.
+- Space: launch / advance screen / restart.
+- M: mute.
+- Prevent page scroll on space/arrows: e.preventDefault().
+
+Ball launch: from the top of the paddle, at a slight random angle.
+
+Ball stuck to paddle in ready state: ball follows the paddle.
+
+Level clear: when all bricks are destroyed (or all destructible bricks). Award a bonus. Show the screen; space → next level (reset bricks, ball to paddle, speed up).
+
+Game over: lives = 0. Show final score, best score (localStorage? "no external assets" — localStorage is fine, it's not an asset). Save high score in localStorage. Show "BEST" in the HUD. Nice touch.
+
+Now, code structure:
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Breakout</title>
+<style>
+  html,body{margin:0;height:100%;overflow:hidden;background:#0b0e1a;}
+  canvas{display:block;width:100vw;height:100vh;cursor:none;}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+// ... game
+</script>
+</body>
+</html>
+```
+
+Cursor: hide the cursor over the canvas since the mouse controls the paddle? The paddle is at the bottom, the mouse is anywhere — hiding the cursor is fine and arcade-like. But on the game over screen, the cursor is hidden and there's no pointer... it's keyboard-driven anyway. Hide the cursor (cursor:none) — the ball/paddle is the feedback. Actually, maybe keep the cursor visible? Hiding feels more game-like. Let's hide it.
+
+World: W=960, H=640.
+
+Layout:
+- HUD height ~64 at the top of the world.
+- Brick area: top offset ~100, 6 rows, brick height 26, gap 6. Columns: 10. Side margins: compute brickW = (W - 2*margin - (cols-1)*gap)/cols, margin ~48.
+- Paddle: y = H - 56, width 110 (shrinks slightly per level? Classic Breakout shrinks the paddle — nice difficulty ramp: level 1: 120, level 2: 104, level 3: 92). Height 16, rounded.
+- Ball radius 7.
+
+Ball speed: base 420 px/s, +40 per level, +8 per paddle hit, cap ~720.
+
+Brick colors per row (level 1 palette):
+Row 0: #ff5d5d (red) — 2 hits
+Row 1: #ffb14d (orange) — 2 hits
+Row 2: #ffe14d (yellow)
+Row 3: #6ee76e? Let me pick a cohesive arcade palette:
+- #ff4d6d (pinkish red)
+- #ff9f43 (orange)
+- #ffe066 (yellow)
+- #51e08a? or #2ed573
+Row 4: #38b6ff / #45c4ff
+Row 5: #b06bff / #a55eea
+
+Level 2 palette: cyan/teal/mint... Level 3: hot magenta/gold... Let me define palettes:
+L1: ['#ff5252','#ff9f43','#ffe066','#2ed573','#3fa7ff','#b06bff']
+L2: ['#ff6b9d','#ffa94d','#ffd43b','#69db7c','#38d9e0'? ...] hmm, let me make it:
+L2: ['#f783ac','#ffd43b','#63e6be','#4dabf7','#9775fa','#ff8787']
+L3: ['#ff4d4d','#ff7847','#ffd60a','#80ed99','#48cae4','#c77dff']
+
+Good enough — colorful.
+
+Brick rendering: rounded rectangle with a vertical gradient (lighter on top), a subtle inner highlight line, and a glow shadow. 2-hit bricks: draw with a slightly different look — maybe a metallic/striped top, or a "shield" look: brighter with a double border; after the first hit, show a crack (draw a crack line) and a darker tone. Cracks: precompute a random crack pattern per brick? Simpler: draw 2-3 jagged lines from a hit point. Store brick.crack = true and draw a deterministic pseudo-random crack based on the brick's index.
+
+Brick hit feedback: brick.flash timer (white overlay), brick.wobble (offset oscillation).
+
+Particles: array of {x,y,vx,vy,life,maxLife,size,color,rot,vr,shape}. Update with gravity 900, fade. Draw as small rotating rectangles or circles. Use 'lighter' composite for glow particles.
+
+Trail: array of {x,y,life}. Push ball position each frame (or every other frame). Draw circles with decreasing radius and alpha, 'lighter'.
+
+Floating text: {x,y,text,life,color,size}.
+
+Screen shake: shake = {t:0, mag:0}. On trigger: shake.t = duration, shake.mag = m. Each frame, offset = random within mag * (t/duration). Apply to world transform.
+
+Paddle squash: paddle.squash timer; on hit, squash=1, decays; draw with scaleY = 1 - 0.35*squash, scaleX = 1 + 0.25*squash.
+
+Ball glow color: base white; hue shifts with combo? Ball color = white core + colored halo (color = current combo color or level accent).
+
+Combo: comboCount increments per brick break during a rally (reset on paddle hit? or on life loss?). Classic juice: multiplier increases per brick broken without touching the paddle. Let's do: on paddle hit, combo=0; on brick break, combo++, multiplier = min(combo, 8)? Score = base * (1 + (combo-1)*0.5)? Keep integers: base points by row: top row 50, then 40,30,20,15,10? Actually, top rows are tougher (2 hits) so worth more: row points = [60,50,40,30,20,10]. Multiplier = 1 + floor(combo/3)? Simpler: multiplier = min(1+combo, 5)? Hmm.
+
+Let me do: combo counts consecutive brick breaks since the last paddle touch. Multiplier = min(combo, 5) but starts at 1: mult = Math.min(combo, 5). Score gained = rowPoints * mult. Show "×N" when N>1, and floating text shows the total. Reset combo on paddle hit and on life loss. Show a combo meter in the HUD: small pips or "COMBO ×3" text that pulses.
+
+Sound (WebAudio):
+```js
+const AudioSys = {
+  ctx:null, muted:false,
+  ensure(){ if(!this.ctx){ this.ctx = new (window.AudioContext||window.webkitAudioContext)(); } if(this.ctx.state==='suspended') this.ctx.resume(); },
+  beep(freq, dur, type='square', vol=0.15, slide=0){ ... oscillator + gain envelope ... }
+}
+```
+Sounds:
+- Paddle: square 180→240Hz, 0.06s
+- Wall: triangle 320Hz, 0.04s, low volume
+- Brick: square, freq = 400 + combo*60, 0.07s; 2-hit brick first hit: 250Hz thud
+- Break (2nd hit): 2 tones
+- Life loss: sawtooth 300→80, 0.4s
+- Launch: 500→900 sweep 0.12s
+- Level clear: arpeggio [523,659,784,1047]
+- Game over: [400,300,200,120] slow
+- Combo milestone: small ping
+
+Implement a helper `tone(f0, f1, dur, type, vol, delay=0)`.
+
+Input:
+- mousemove: track mouse world x; paddle target.
+- keydown: ArrowLeft/Right set flags; Space triggers action based on state; M toggles mute.
+- keyup: clear flags.
+- Also touch? Not required; skip (mouse + keys). Maybe add touchmove for mobile as a bonus — cheap to add: touchmove sets paddle x. Let me add it, why not.
+
+Paddle movement: if keys are pressed, move by speed*dt and override the mouse target (set mouseTarget = paddle.x so it doesn't snap back). Standard approach: paddle.x += (keys? keySpeed*dt : 0); if mouse moved recently, lerp paddle.x toward mouseTarget quickly. Simplest: on mousemove, set paddle.x directly (clamped). Keys adjust paddle.x. Both work simultaneously.
+
+Game loop: requestAnimationFrame with dt clamped (max 1/30). Fixed-ish step is fine with dt.
+
+Collision details:
+Ball vs brick: for each alive brick, AABB. Circle-rect closest point test. On hit: determine axis: compare overlapX and overlapY using the previous position or penetration. Use: dx = ball.x - clamp(ball.x, bx, bx+bw); dy = ball.y - clamp(ball.y, by, by+bh); if dx*dx+dy*dy < r*r → hit. Reflection: if |dx| > |dy| → reverse vx (sign of dx), else reverse vy (sign of dy). If both are 0 (center inside), reverse vy. Then damage the brick.
+
+Only process the first brick hit per frame (break the loop) to avoid double reflection.
+
+Ball vs paddle: if vy>0 and ball.y + r >= paddle.y and ball.y - r <= paddle.y + paddle.h and |ball.x - paddle.x| <= paddle.w/2 + r → bounce. rel = (ball.x - paddle.x)/(paddle.w/2 + r) clamped to [-1,1]; angle = rel * 65° (max). speed = min(speed + 6, maxSpeed). vx = speed*sin(angle), vy = -speed*cos(angle). Ensure a minimum |vy| so the ball doesn't go horizontal: if |vy| < 0.25*speed, adjust. Actually, with max angle 65°, cos(65°)=0.42, so vy is at least 0.42*speed — fine.
+
+Walls: x-r<0 → x=r, vx=abs; x+r>W → x=W-r, vx=-abs; y-r<topBound (HUD line? playfield top) → y=topBound+r, vy=abs. Playfield: is the whole world the playfield? The HUD is drawn at the top; the ball bounces at y = HUD_H (e.g., 64). Let me define PLAY_TOP = 64. Bottom: y - r > H → life loss.
+
+Life loss: shake big, red flash vignette, sound, lives--, combo=0. If lives>0 → state 'ready', ball on paddle. Otherwise → 'gameover', update best.
+
+Level clear: state 'levelcomplete', bonus = 500 + lives*100? Show "LEVEL CLEAR" + bonus. Space → level++, if level > 3 → 'win' screen (or treat as a final level clear with "YOU WIN"). Let me do: after level 3 clear → 'win' state, "YOU WIN!" + final score + space to restart.
+
+Ready state: ball follows paddle; draw "PRESS SPACE TO LAUNCH" pulsing. First time, also show the title "BREAKOUT" big.
+
+Now, rendering details for polish:
+
+Background (full canvas, in screen space):
+- Fill with a deep gradient: #070a14 → #0d1226 vertical? Add a subtle radial glow in the center.
+- Stars: ~120 stars with parallax drift (slowly move down-left, wrap), twinkle (alpha sin). Draw in screen space, unaffected by shake (or slightly affected — parallax: shake * 0.3).
+- Maybe a faint grid in the playfield.
+
+Playfield frame: rounded rectangle stroke with glow (level accent color), inner subtle fill (slightly lighter than the background, e.g., rgba(255,255,255,0.02)) and a faint grid line.
+
+HUD:
+- Left: "SCORE" label small (monospace, letter-spaced, dim), value big (monospace bold, white).
+- Center: "LEVEL 1" + level name? Level names: "SECTOR 1"? Cute: "WAVE 1." Let's do "LEVEL 1/3."
+- Right: "LIVES" + 3 ball icons (glowing circles, dim when lost).
+- Below the score: "BEST 12345" small.
+- Combo: when active, show "COMBO ×3" in the center below the level, pulsing, colored.
+
+Fonts:
+- Display: `900 64px Impact, 'Arial Black', 'Franklin Gothic Bold', sans-serif` — Impact is widely available (Windows/mac). Fallback is fine.
+- Monospace: `'Consolas','SF Mono','Menlo','Courier New',monospace`.
+- Letter-spacing on canvas: ctx.letterSpacing works in modern Chrome; not universal. I can manually space by drawing characters, or just use it if available. Simpler: use ctx.letterSpacing = '3px' with a guard (it's a property; setting it on unsupported browsers is harmless). Actually, setting an unknown property on ctx is harmless. Let's use it.
+
+Title screen: big "BREAKOUT" with a chromatic aberration offset (draw 3 times: red offset left, cyan offset right, white on top) — very arcade. Subtitle "A JUICE-FEST ARCADE" or control hints: "MOUSE / ← → MOVE · SPACE LAUNCH · M SOUND."
+
+Level clear screen: dark overlay, "LEVEL 2 CLEAR" big, "BONUS +600," "PRESS SPACE FOR NEXT LEVEL" pulsing. Confetti particles? Spawn celebratory particles.
+
+Game over: "GAME OVER" big in red, "FINAL SCORE 12345," "BEST 23456" (with "NEW BEST!" if updated), "PRESS SPACE TO RESTART."
+
+Win: "YOU WIN!" gold, final score, space to play again.
+
+Screen transitions: fade in the overlay (stateTime).
+
+Extra juice:
+- Ball speed lines when fast? The trail covers it.
+- Paddle edge glow on ball approach? Skip.
+- Brick break: also spawn a ring shockwave (expanding circle stroke that fades). Nice.
+- Life loss: red vignette flash + big shake + slow-mo? Brief slow-mo (timeScale 0.3 for 0.3s) is very juicy. Let me add a hitstop: on brick break, a tiny hitstop (timeScale 0.05 for 40ms)? Hitstop on brick break might feel choppy with many bricks; keep it small (30ms). On life loss: 200ms slow-mo. Implement timeScale with a timer.
+
+- Paddle: gradient, rounded, with a glow, and maybe a small "engine" light.
+
+- Ball: white core with colored glow (color shifts with speed or combo).
+
+HUD:
+- Top bar: SCORE (left), LEVEL (center), LIVES (right, drawn as small ball icons or hearts). Combo indicator.
+- Fonts: display "Impact" for big text; monospace for numbers.
+
+Screens:
+- Start screen? The requirement doesn't explicitly ask for a start screen, but "level clear and game over screens" are required. A start screen is nice: "BREAKOUT — press SPACE to start." Actually, the ready state (ball on paddle, "press SPACE to launch") can double as the start. Let me do this: initial state 'ready' with a title overlay "BREAKOUT" and "SPACE to launch." After game over, "GAME OVER — final score — SPACE to restart." Level clear: "LEVEL X CLEAR — bonus +500 — SPACE for next level." After the final level: "YOU WIN."
+
+Lives: 3, drawn as small glowing balls.
+
+Controls:
+- Mouse move: paddle follows mouse x (in world coordinates).
+- Arrow keys: move paddle at a constant speed (e.g., 900 px/s), with acceleration? Constant speed is fine; hold both? Left takes priority or net.
+- Space: launch / advance screen / restart.
+- M: mute.
+- Prevent page scroll on space/arrows: e.preventDefault().
+
+Ball launch: from the top of the paddle, at a slight random angle.
+
+Ball stuck to paddle in ready state: ball follows the paddle.
+
+Level clear: when all bricks are destroyed (or all destructible bricks). Award a bonus. Show the screen; space → next level (reset bricks, ball to paddle, speed up).
+
+Game over: lives = 0. Show final score, best score (localStorage? "no external assets" — localStorage is fine, it's not an asset). Save high score in localStorage. Show "BEST" in the HUD. Nice touch.
+
+Now, code structure:
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Breakout</title>
+<style>
+  html,body{margin

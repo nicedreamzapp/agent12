@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>WebGL2 Furry Ball</title>
+    <style>
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #050505; }
+        canvas { display: block; width: 100vw; height: 100vh; cursor: crosshair; }
+    </style>
+</head>
+<body>
+    <canvas id="glCanvas"></canvas>
+    <script>
+        const canvas = document.getElementById('glCanvas');
+        const gl = canvas.getContext('webgl2', { antialias: true });
+
+        if (!gl) { alert('WebGL2 not supported'); }
+
+        const STRAND_COUNT = 500000; // Balanced for high performance on Apple Silicon
+        const SEGMENTS_PER_STRAND = 4;
+        const BALL_RADIUS = 4.0; // 8 inches diameter = 4 radius
+        const HAIR_LENGTH = 1.0;
+
+        const vsSource = `#version 300 es
+            layout(location = 0) in vec3 aPos;
+            layout(location = 1) in float aStrandId;
+            layout(location = 2) in float aSegment;
+
+            uniform mat4 uProj;
+            uniform mat4 uView;
+            uniform float uTime;
+            uniform vec3 uMousePos;
+            uniform vec3 uMouseDir;
+            uniform float uMouseActive;
+
+            out float vDepth;
+            out float vSegment;
+            out vec3 vNormal;
+
+            // Simple hash for randomness
+            float hash(float n) { return fract(sin(n) * 43758.5453123); }
+
+            void main() {
+                float id = aStrandId;
+                float seg = aSegment;
+                
+                // Fibonacci Sphere Distribution
+                float phi = acos(1.0 - 2.0 * (id / float(STRAND_COUNT)));
+                float theta = 2.39996322972865332 * id; // Golden angle
+
+                vec3 root = vec3(
+                    sin(phi) * cos(theta),
+                    sin(phi) * sin(theta),
+                    cos(phi)
+                ) * BALL_RADIUS;
+
+                vec3 dir = root / length(root);
+                
+                // Randomize length and thickness slightly
+                float lenVar = 0.8 + hash(id) * 0.4;
+                float currentLen = HAIR_LENGTH * lenVar * (seg / float(SEGMENTS_PER_STRAND - 1));
+                
+                vec3 pos = root + dir * currentLen;
+
+                // Interaction: Petting logic
+                // We calculate a "push" based on distance to mouse and mouse movement
+                float dist = distance(pos, uMousePos);
+                float influence = smoothstep(1.5, 0.0, dist);
+                
+                // Bend the hair in the direction of the mouse drag
+                vec3 bend = uMouseDir * influence * 0.8 * (seg / float(SEGMENTS_PER_STRAND - 1));
+                pos += bend;
+
+                vSegment = seg / float(SEGMENTS_PER_STRAND - 1);
+                vNormal = dir;
+                vDepth = length(pos);
+
+                gl_Position = uProj * uView * vec4(pos, 1.0);
+                gl_PointSize = 1.0;
+            }
+        `;
+
+        const fsSource = `#version 300 es
+            precision highp float;
+            in float vDepth;
+            in float vSegment;
+            in vec3 vNormal;
+            out vec4 fragColor;
+
+            void main() {
+                // Lighting: Simple diffuse + root darkening
+                vec3 lightDir = normalize(vec3(1.0, 1.0, 1.0));
+                float diff = max(dot(vNormal, lightDir), 0.2);
+                
+                // Color: Warm brown/grey fur
+                vec3 baseColor = vec3(0.4, 0.3, 0.2);
+                
+                // Darken roots, brighten tips
+                float rootFade = smoothstep(0.0, 0.3, vSegment);
+                
+                // Simple occlusion: darker if deeper in the "ball"
+                float occlusion = smoothstep(4.0, 6.0, vDepth);
+                
+                vec3 finalColor = baseColor * diff * rootFade;
+                fragColor = vec4(finalColor, 1.0);
+            }
+        `;
+
+        function createShader(gl, type, source) {
+            const shader = gl.createShader(type);
+            gl.shaderSource(shader, source);
+            gl.compileShader(shader);
+            if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+                console.error(gl.getShaderInfoLog(shader));
+                gl.deleteShader(shader);
+                return null;
+            }
+            return shader;
+        }
+
+        const program = gl.createProgram();
+        gl.attachShader(program, createShader(gl, gl.VERTEX_SHADER, vsSource));
+        gl.attachShader(program, createShader(gl, gl.FRAGMENT_SHADER, fsSource));
+        gl.linkProgram(program);
+        gl.useProgram(program);
+
+        // Buffers
+        const strandIds = new Float32Array(STRAND_COUNT * SEGMENTS_PER_STRAND);
+        const segments = new Float32Array(STRAND_COUNT * SEGMENTS_PER_STRAND);
+        for (let i = 0; i < STRAND_COUNT; i++) {
+            for (let j = 0; j < SEGMENTS_PER_STRAND; j++) {
+                strandIds[i * SEGMENTS_PER_STRAND + j] = i;
+                segments[i * SEGMENTS_PER_STRAND + j] = j;
+            }
+        }
+
+        const idBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, idBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, strandIds, gl.STATIC_DRAW);
+        gl.enableVertexAttribArray(1);
+        gl.vertexAttribPointer(1, 1, gl.FLOAT, false, 0, 0);
+
+        const segBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, segBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, segments, gl.STATIC_DRAW);
+        gl.enableVertexAttribArray(2);
+        gl.vertexAttribPointer(2, 1, gl.FLOAT, false, 0, 0);
+
+        const uProj = gl.getUniformLocation(program, 'uProj');
+        const uView = gl.getUniformLocation(program, 'uView');
+        const uMousePos = gl.getUniformLocation(program, 'uMousePos');
+        const uMouseDir = gl.getUniformLocation(program, 'uMouseDir');
+        const uMouseActive = gl.getUniformLocation(program, 'uMouseActive');
+
+        let mouseX = 0, mouseY = 0, lastX = 0, lastY = 0;
+        let mDirX = 0, mDirY = 0, mDirZ = 0;
+        let isMouseDown = false;
+        let currentMouseWorld = [0, 0, 0];
+
+        window.addEventListener('mousedown', () => isMouseDown = true);
+        window.addEventListener('mouseup', () => isMouseDown = false);
+        window.addEventListener('mousemove', (e) => {
+            const nx = (e.clientX / window.innerWidth) * 2 - 1;
+            const ny = -(e.clientY / window.innerHeight) * 2 + 1;
+            
+            if (isMouseDown) {
+                mDirX = nx - lastX;
+                mDirY = ny - lastY;
+                // Approximate Z direction based on screen position
+                mDirZ = (nx * nx + ny * ny < 0.5) ? -0.1 : 0.1;
+            }
+            lastX = nx;
+            lastY = ny;
+            mouseX = nx;
+            mouseY = ny;
+        });
+
+        function getProjection(aspect) {
+            const fov = 45 * Math.PI / 180;
+            const zNear = 0.1;
+            const zFar = 100.0;
+            const f = 1.0 / Math.tan(fov / 2);
+            return new Float32Array([
+                f / aspect, 0, 0, 0,
+                0, f, 0, 0,
+                0, 0, (zFar + zNear) / (zNear - zFar), -1,
+                0, 0, (2 * zFar * zNear) / (zNear - zFar), 0
+            ]);
+        }
+
+        function render(time) {
+            gl.viewport(0, 0, canvas.width, canvas.height);
+            gl.clearColor(0.02, 0.02, 0.02, 1.0);
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+            gl.enable(gl.DEPTH_TEST);
+
+            const aspect = canvas.width / canvas.height;
+            gl.uniformMatrix4fv(uProj, false, getProjection(aspect));
+            
+            // Static camera view
+            const view = new Float32Array([
+                1, 0, 0, 0,
+                0, 1, 0, 0,
+                0, 0, 1, 0,
+                0, 0, -15, 1
+            ]);
+            gl.uniformMatrix4fv(uView, false, view);
+
+            // Unproject mouse to world space (approximate)
+            // Since camera is at (0,0,-15) looking at (0,0,0)
+            const worldX = mouseX * aspect * 6.0;
+            const worldY = mouseY * 6.0;
+            const worldZ = 0; 
+            gl.uniform3f(uMousePos, worldX, worldY, worldZ);
+            
+            // Decay mouse direction for "relaxing" effect
+            mDirX *= 0.92;
+            mDirY *= 0.92;
+            mDirZ *= 0.92;
+            gl.uniform3f(uMouseDir, mDirX * 5, mDirY * 5, mDirZ * 5);
+            gl.uniform1f(uMouseActive, isMouseDown ? 1.0 : 0.0);
+
+            gl.drawArrays(gl.LINE_STRIP, 0, STRAND_COUNT * SEGMENTS_PER_STRAND);
+            // Note: To avoid connecting all strands, we'd usually use a different topology 
+            // or a geometry shader. In WebGL2, we can use a trick: 
+            // we draw as lines, but since we have 500k strands, we can use a 
+            // custom vertex shader to "break" the line by snapping 
+            // the first vertex of each strand to a far distance or using a different primitive.
+            // For maximum performance and simplicity here, we use a trick: 
+            // we draw as points or use a small offset. 
+            // Actually, the most efficient way for 1M hairs is gl.LINES.
+            // Let's adjust the buffer to use gl.LINES.
+            
+            requestAnimationFrame(render);
+        }
+
+        // Re-adjusting to gl.LINES for correct rendering of separate strands
+        function initLines() {
+            const lineIds = new Float32Array(STRAND_COUNT * (SEGMENTS_PER_STRAND - 1) * 2);
+            const lineSegs = new Float32Array(STRAND_COUNT * (SEGMENTS_PER_STRAND - 1) * 2);
+            let idx = 0;
+            for (let i = 0; i < STRAND_COUNT; i++) {
+                for (let j = 0; j < SEGMENTS_PER_STRAND - 1; j++) {
+                    lineIds[idx] = i;
+                    lineSegs[idx] = j;
+                    lineIds[idx+1] = i;
+                    lineSegs[idx+1] = j + 1;
+                    idx += 2;
+                }
+            }
+            const idB = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, idB);
+            gl.bufferData(gl.ARRAY_BUFFER, lineIds, gl.STATIC_DRAW);
+            gl.enableVertexAttribArray(1);
+            gl.vertexAttribPointer(1, 1, gl.FLOAT, false, 0, 0);
+
+            const segB = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, segB);
+            gl.bufferData(gl.ARRAY_BUFFER, lineSegs, gl.STATIC_DRAW);
+            gl.enableVertexAttribArray(2);
+            gl.vertexAttribPointer(2, 1, gl.FLOAT, false, 0, 0);
+            
+            return STRAND_COUNT * (SEGMENTS_PER_STRAND - 1) * 2;
+        }
+
+        const totalVertices = initLines();
+        
+        // Override render to use the new vertex count and gl.LINES
+        const originalRender = render;
+        function renderFixed(time) {
+            gl.viewport(0, 0, canvas.width, canvas.height);
+            gl.clearColor(0.02, 0.02, 0.02, 1.0);
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+            gl.enable(gl.DEPTH_TEST);
+
+            const aspect = canvas.width / canvas.height;
+            gl.uniformMatrix4fv(uProj, false, getProjection(aspect));
+            const view = new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,-15,1]);
+            gl.uniformMatrix4fv(uView, false, view);
+
+            const worldX = mouseX * aspect * 6.0;
+            const worldY = mouseY * 6.0;
+            gl.uniform3f(uMousePos, worldX, worldY, 0);
+            mDirX *= 0.92; mDirY *= 0.92; mDirZ *= 0.92;
+            gl.uniform3f(uMouseDir, mDirX * 5, mDirY * 5, mDirZ * 5);
+            gl.uniform1f(uMouseActive, isMouseDown ? 1.0 : 0.0);
+
+            gl.drawArrays(gl.LINES, 0, totalVertices);
+            requestAnimationFrame(renderFixed);
+        }
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+        requestAnimationFrame(renderFixed);
+    </script>
+</body>
+</html>
