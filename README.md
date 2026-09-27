@@ -8,6 +8,27 @@ function, and delete the *right* backup. Agent-12 measures that by making
 models DO real agent tasks in a sandbox, judged by the filesystem, never by
 their prose.
 
+**In one sentence:** Agent-12 runs local LLMs through 20 real agent tasks
+(12 easy, 8 hard) in throwaway sandboxes and scores each one by checking the
+files the model left behind.
+
+**Proof it works** (from the result files in [`results/`](results/), the same
+ones [`build_site.py`](build_site.py) renders into the [live board](https://nicedreamzapp.github.io/agent12/)):
+
+| Model (all on one Apple M5, 128 GB, except the cloud row) | easy | hard |
+|---|---|---|
+| Qwen3.6-35B-A3B (MLX 8-bit) | 12/12 in 64.2s | 8/8 in 125.2s |
+| Qwen3-Coder-30B-A3B (MLX 8-bit) | 12/12 in 42.6s | 7/8 in 391.5s |
+| Gemma 4 31B (MLX 4-bit) | 11/12 in 92.1s | 8/8 in 347.9s |
+| Qwen3.8-27B (MLX 8-bit) + DFlash 2 drafter | 12/12 in 122.0s | 7/8 in 401.4s |
+| DeepSeek V4 Flash (2-bit, ds4.c) | 12/12 in 203.2s | 8/8 in 550.8s |
+| Claude Sonnet 5 (cloud reference, same engine) | 12/12 in 122.0s | 8/8 in 131.0s |
+
+A side bench has models write one HTML file that a script then plays in a
+headless browser. Qwen3.8-27B's Breakout passed ([writeup](writeups/visual_showdown_2026-09-19.md)):
+
+<img src="results/breakout/qwen3.8-27b-dflash-medium_shots/play_005.png" alt="Breakout written by Qwen3.8-27B, captured by the judge" width="420">
+
 **Run the winner:** every model on this board plugs straight into
 [Claude Code Local](https://github.com/nicedreamzapp/claude-code-local) — Claude Code,
 100% on-device on Apple Silicon. Live board: [nicedreamzapp.github.io/agent12](https://nicedreamzapp.github.io/agent12/).
@@ -32,7 +53,8 @@ MLX builds of the fighters: [huggingface.co/divinetribe](https://huggingface.co/
 3. **Every judge is validated before it judges.** `validate_judges.py` runs a
    known-good reference solution (must pass) and a plausible known-bad
    attempt (must fail) against every task's judge. A judge that fails either
-   direction blocks the run. This gate has already caught one of our own
+   direction fails the gate with a non-zero exit. The runner does not re-check
+   this itself, so run the gate first. This gate has already caught one of our own
    judges demanding behavior that contradicted its own task spec.
 
 ## The suites
@@ -61,7 +83,7 @@ macOS) a correct answer using `list[str] | None` is scored as a failure.
 # 1. validate the judges (required — the runner assumes this passed)
 python3 validate_judges.py
 
-# 2. run a configured model through the reference engine
+# 2. run a configured model through the reference engine (needs Anvil, see below)
 python3 runner.py --suite easy --model qwen3-coder-30b --run qwen30_easy
 python3 runner.py --suite hard --model qwen3-coder-30b --run qwen30_hard
 
@@ -70,8 +92,38 @@ AGENT12_CMD='your-agent --print {prompt}' AGENT12_MODEL_LABEL='your-model' \
   python3 runner.py --suite easy --adapter command --run yours_easy
 ```
 
+Step 1 works from a fresh clone with no installs. Step 3 works with any agent
+CLI. Step 2 needs the Anvil engine (`agent.py`), which is **not in this repo**:
+[`adapters/anvil.py`](adapters/anvil.py) imports it from `AGENT12_ENGINE_DIR`,
+plus MLX on Apple silicon and the weights in [`configs/models.json`](configs/models.json).
+The visual benches need `websocket-client` and Brave at its macOS path.
+`run_task.sh`, `glimmer_night.sh` and `lyric_ab.py` hard-code paths on Matt's
+machine and will not run elsewhere as-is.
+
 Discipline: temperature 0, fixed step/token caps per suite, fresh sandbox and
 fresh conversation per task, one variable moved per comparison.
+
+## What I built (Matt Macosko)
+
+- [`runner.py`](runner.py): one model, one suite, a fresh sandbox per task.
+- [`adapters/`](adapters/): [`anvil.py`](adapters/anvil.py), [`anvil_dflash.py`](adapters/anvil_dflash.py)
+  and [`command.py`](adapters/command.py), so any harness can be plugged in.
+- [`tasks/easy.py`](tasks/easy.py), [`tasks/hard.py`](tasks/hard.py): 20 tasks, each with a filesystem judge plus known-good and known-bad solutions.
+- [`validate_judges.py`](validate_judges.py): the gate that tests every judge before it scores a model.
+- [`build_site.py`](build_site.py): renders `results/` into the board at [`docs/index.html`](docs/index.html).
+- [`furball_bench.py`](furball_bench.py), [`showdown.py`](showdown.py): the visual benches.
+- [`METHODOLOGY.md`](METHODOLOGY.md), [`CONTAMINATION.md`](CONTAMINATION.md), [`writeups/`](writeups/).
+
+The Python floor in [`envcheck.py`](envcheck.py) is from [@galashko](https://github.com/galashko).
+Upstream, not built here: the models, MLX and mlx-lm, mlx-dspark and the
+DFlash 2 drafter, ds4.c, and Brave.
+
+## Known limits
+
+- The Anvil engine is outside this repo, so model rows cannot be reproduced from this clone alone.
+- The held-out pool in [CONTAMINATION.md](CONTAMINATION.md) is private and `build_site.py` does
+  not render its contamination flag yet. Board scores come from the 20 public tasks.
+- 20 tasks is a small sample. Repeat runs can differ by one task (the `_s2`..`_s4` files in `results/`).
 
 ## Docs
 
