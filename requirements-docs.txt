@@ -1,0 +1,7 @@
+# Only needed to build the documentation site (mkdocs.yml). The benchmark
+# itself needs no installs for validate_judges.py.
+# [imaging] pulls in Pillow and CairoSVG for the social card plugin; it also
+# needs the system Cairo library (libcairo2 on Ubuntu, `brew install cairo` on macOS).
+mkdocs-material[imaging]==9.7.7
+# Material's maintainers warn that MkDocs 2.0 breaks plugins and themes; stay on 1.x.
+mkdocs>=1.6,<2

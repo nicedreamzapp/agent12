@@ -1,0 +1,59 @@
+name: docs
+
+# Builds the MkDocs site and deploys it to GitHub Pages on every push to main.
+# Needs Settings > Pages > Source set to "GitHub Actions" in the repo.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-docs.txt
+
+      - name: Install system libraries for social cards
+        run: sudo apt-get update && sudo apt-get install -y libcairo2-dev libfreetype6-dev libffi-dev libjpeg-dev libpng-dev libz-dev
+
+      - name: Install MkDocs Material
+        run: pip install -r requirements-docs.txt
+
+      - name: Build docs (strict)
+        run: mkdocs build --strict
+
+      # The existing leaderboard (docs/index.html, written by build_site.py)
+      # keeps living in the repo; publish it next to the docs at /leaderboard/.
+      - name: Add the leaderboard page
+        run: |
+          mkdir -p _site/leaderboard
+          cp docs/index.html _site/leaderboard/index.html
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

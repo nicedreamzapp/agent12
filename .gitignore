@@ -4,3 +4,5 @@ sandboxes/
 logs/
 .DS_Store
 .env
+_site/
+.cache/

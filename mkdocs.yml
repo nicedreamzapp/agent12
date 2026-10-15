@@ -1,0 +1,91 @@
+# Documentation site for Agent-12, built with MkDocs Material.
+#
+# Sources live in docsite/ (not docs/), because docs/ already holds the
+# leaderboard page that build_site.py writes and GitHub Pages serves today.
+# Output goes to _site/ (not the MkDocs default site/), because site/ already
+# holds site/meta.json for build_site.py.
+#
+# Local preview:  pip install -r requirements-docs.txt && mkdocs serve
+# Strict build:   mkdocs build --strict
+site_name: Agent-12 docs
+site_description: >-
+  Agent-12 is an open benchmark that runs local LLMs through 20 real agent
+  tasks in throwaway sandboxes and scores them by checking the files they
+  leave behind.
+site_author: Matt Macosko
+# TODO-VERIFY: placeholder until the Pages deployment URL is confirmed.
+site_url: https://nicedreamzapp.github.io/agent12/
+repo_url: https://github.com/nicedreamzapp/agent12
+repo_name: nicedreamzapp/agent12
+edit_uri: edit/main/docsite/
+copyright: Agent-12 is MIT licensed.
+
+docs_dir: docsite
+site_dir: _site
+
+theme:
+  name: material
+  language: en
+  features:
+    - navigation.instant
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - toc.follow
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: blue grey
+      accent: deep orange
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: blue grey
+      accent: deep orange
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  icon:
+    repo: fontawesome/brands/github
+
+plugins:
+  - search
+  - social
+  # MkDocs writes sitemap.xml and sitemap.xml.gz on every build when
+  # site_url is set; no plugin is needed for it.
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/nicedreamzapp/agent12
+
+nav:
+  - Home: index.md
+  - Install: install.md
+  - Quickstart: quickstart.md
+  - Configuration: configuration.md
+  - How it works: how-it-works.md
+  - Troubleshooting: troubleshooting.md
+  - FAQ: faq.md
+  - Changelog: changelog.md
+  - Credits: credits.md
