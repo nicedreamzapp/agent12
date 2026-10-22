@@ -1,8 +1,8 @@
 # Agent-12 — the local agent leaderboard
 
 <a id="what"></a>
-<picture><source media="(max-width: 610px), (min-width: 768px) and (max-width: 895px)" srcset="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s01-banner-m.svg"><source media="(max-width: 1149px)" srcset="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s01-banner-mid.svg"><img src="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s01-banner.svg" width="100%" alt="01. What it measures. Which model can actually be your agent on your own hardware"></picture>
-<picture><source media="(max-width: 610px), (min-width: 768px) and (max-width: 895px)" srcset="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s01-r1-m.svg"><source media="(max-width: 1149px)" srcset="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s01-r1-mid.svg"><img src="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s01-r1.svg" width="100%" alt="20 real agent tasks. 12 + 8 easy and hard tasks. ~550 token reference harness."></picture>
+<picture><source media="(max-width: 610px), (min-width: 768px) and (max-width: 895px)" srcset="https://raw.githubusercontent.com/nicedreamzapp/agent12/22c67283a9463411c5098c78baca57c7f63250c3/assets/readme/s01-banner-m.svg"><source media="(max-width: 1149px)" srcset="https://raw.githubusercontent.com/nicedreamzapp/agent12/22c67283a9463411c5098c78baca57c7f63250c3/assets/readme/s01-banner-mid.svg"><img src="https://raw.githubusercontent.com/nicedreamzapp/agent12/22c67283a9463411c5098c78baca57c7f63250c3/assets/readme/s01-banner.svg" width="100%" alt="01. What it measures. Which model can actually be your agent on your own hardware"></picture>
+<picture><source media="(max-width: 610px), (min-width: 768px) and (max-width: 895px)" srcset="https://raw.githubusercontent.com/nicedreamzapp/agent12/22c67283a9463411c5098c78baca57c7f63250c3/assets/readme/s01-r1-m.svg"><source media="(max-width: 1149px)" srcset="https://raw.githubusercontent.com/nicedreamzapp/agent12/22c67283a9463411c5098c78baca57c7f63250c3/assets/readme/s01-r1-mid.svg"><img src="https://raw.githubusercontent.com/nicedreamzapp/agent12/22c67283a9463411c5098c78baca57c7f63250c3/assets/readme/s01-r1.svg" width="100%" alt="20 real agent tasks. 12 + 8 easy and hard tasks. ~550 token reference harness."></picture>
 
 **Which model can actually be your agent on your own hardware?**
 
@@ -16,12 +16,12 @@ their prose.
 (12 easy, 8 hard) in throwaway sandboxes and scores each one by checking the
 files the model left behind.
 
-<img src="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s01-rule.svg" width="100%" alt="">
+<img src="https://raw.githubusercontent.com/nicedreamzapp/agent12/22c67283a9463411c5098c78baca57c7f63250c3/assets/readme/s01-rule.svg" width="100%" alt="">
 
 
 <a id="board"></a>
-<picture><source media="(max-width: 610px), (min-width: 768px) and (max-width: 895px)" srcset="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s02-banner-m.svg"><source media="(max-width: 1149px)" srcset="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s02-banner-mid.svg"><img src="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s02-banner.svg" width="100%" alt="02. The scoreboard. Local models on one Apple M5, 128 GB"></picture>
-<picture><source media="(max-width: 610px), (min-width: 768px) and (max-width: 895px)" srcset="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s02-r1-m.svg"><source media="(max-width: 1149px)" srcset="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s02-r1-mid.svg"><img src="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s02-r1.svg" width="100%" alt="12/12 Qwen3.6-35B-A3B easy. 8/8 Qwen3.6-35B-A3B hard. 6 models on the board."></picture>
+<picture><source media="(max-width: 610px), (min-width: 768px) and (max-width: 895px)" srcset="https://raw.githubusercontent.com/nicedreamzapp/agent12/22c67283a9463411c5098c78baca57c7f63250c3/assets/readme/s02-banner-m.svg"><source media="(max-width: 1149px)" srcset="https://raw.githubusercontent.com/nicedreamzapp/agent12/22c67283a9463411c5098c78baca57c7f63250c3/assets/readme/s02-banner-mid.svg"><img src="https://raw.githubusercontent.com/nicedreamzapp/agent12/22c67283a9463411c5098c78baca57c7f63250c3/assets/readme/s02-banner.svg" width="100%" alt="02. The scoreboard. Local models on one Apple M5, 128 GB"></picture>
+<picture><source media="(max-width: 610px), (min-width: 768px) and (max-width: 895px)" srcset="https://raw.githubusercontent.com/nicedreamzapp/agent12/22c67283a9463411c5098c78baca57c7f63250c3/assets/readme/s02-r1-m.svg"><source media="(max-width: 1149px)" srcset="https://raw.githubusercontent.com/nicedreamzapp/agent12/22c67283a9463411c5098c78baca57c7f63250c3/assets/readme/s02-r1-mid.svg"><img src="https://raw.githubusercontent.com/nicedreamzapp/agent12/22c67283a9463411c5098c78baca57c7f63250c3/assets/readme/s02-r1.svg" width="100%" alt="12/12 Qwen3.6-35B-A3B easy. 8/8 Qwen3.6-35B-A3B hard. 6 models on the board."></picture>
 
 **Proof it works** (from the result files in [`results/`](results/), the same
 ones [`build_site.py`](build_site.py) renders into the [live board](https://nicedreamzapp.github.io/agent12/)):
@@ -49,12 +49,12 @@ MLX builds of the fighters: [huggingface.co/divinetribe](https://huggingface.co/
 
 **2026-08-22:** Qwen3.8-27B (8-bit) joins the local table from its own runs (see `writeups/qwen38_vs_qwen36.md`). Muse Glimmer 30B and Nemotron 3 Nano Omni appear in a separate **vendor-reported** section with their publishers' own numbers, credited and linked, until they get a real Agent-12 run.
 
-<img src="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s02-rule.svg" width="100%" alt="">
+<img src="https://raw.githubusercontent.com/nicedreamzapp/agent12/22c67283a9463411c5098c78baca57c7f63250c3/assets/readme/s02-rule.svg" width="100%" alt="">
 
 
 <a id="method"></a>
-<picture><source media="(max-width: 610px), (min-width: 768px) and (max-width: 895px)" srcset="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s03-banner-m.svg"><source media="(max-width: 1149px)" srcset="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s03-banner-mid.svg"><img src="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s03-banner.svg" width="100%" alt="03. How it is judged. What makes this benchmark different"></picture>
-<picture><source media="(max-width: 610px), (min-width: 768px) and (max-width: 895px)" srcset="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s03-r1-m.svg"><source media="(max-width: 1149px)" srcset="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s03-r1-mid.svg"><img src="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s03-r1.svg" width="100%" alt="Consumer hardware. Every local row ran on one machine you can put on a desk. Harness included. The harness is part of the experiment. Judges validated. Each judge is tested before it judges."></picture>
+<picture><source media="(max-width: 610px), (min-width: 768px) and (max-width: 895px)" srcset="https://raw.githubusercontent.com/nicedreamzapp/agent12/22c67283a9463411c5098c78baca57c7f63250c3/assets/readme/s03-banner-m.svg"><source media="(max-width: 1149px)" srcset="https://raw.githubusercontent.com/nicedreamzapp/agent12/22c67283a9463411c5098c78baca57c7f63250c3/assets/readme/s03-banner-mid.svg"><img src="https://raw.githubusercontent.com/nicedreamzapp/agent12/22c67283a9463411c5098c78baca57c7f63250c3/assets/readme/s03-banner.svg" width="100%" alt="03. How it is judged. What makes this benchmark different"></picture>
+<picture><source media="(max-width: 610px), (min-width: 768px) and (max-width: 895px)" srcset="https://raw.githubusercontent.com/nicedreamzapp/agent12/22c67283a9463411c5098c78baca57c7f63250c3/assets/readme/s03-r1-m.svg"><source media="(max-width: 1149px)" srcset="https://raw.githubusercontent.com/nicedreamzapp/agent12/22c67283a9463411c5098c78baca57c7f63250c3/assets/readme/s03-r1-mid.svg"><img src="https://raw.githubusercontent.com/nicedreamzapp/agent12/22c67283a9463411c5098c78baca57c7f63250c3/assets/readme/s03-r1.svg" width="100%" alt="Consumer hardware. Every local row ran on one machine you can put on a desk. Harness included. The harness is part of the experiment. Judges validated. Each judge is tested before it judges."></picture>
 
 1. **It runs on consumer hardware.** Every local row on the scoreboard was
    produced on a single Apple-silicon machine you can put on a desk. Rows
@@ -87,12 +87,12 @@ MLX builds of the fighters: [huggingface.co/divinetribe](https://huggingface.co/
 Anti-cheat: tasks that ship a test file pin its hash — editing the test
 scores zero. Judges run the model's artifacts in a fresh subprocess.
 
-<img src="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s03-rule.svg" width="100%" alt="">
+<img src="https://raw.githubusercontent.com/nicedreamzapp/agent12/22c67283a9463411c5098c78baca57c7f63250c3/assets/readme/s03-rule.svg" width="100%" alt="">
 
 
 <a id="run"></a>
-<picture><source media="(max-width: 610px), (min-width: 768px) and (max-width: 895px)" srcset="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s04-banner-m.svg"><source media="(max-width: 1149px)" srcset="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s04-banner-mid.svg"><img src="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s04-banner.svg" width="100%" alt="04. Running it. Python 3.10 or newer"></picture>
-<picture><source media="(max-width: 610px), (min-width: 768px) and (max-width: 895px)" srcset="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s04-r1-m.svg"><source media="(max-width: 1149px)" srcset="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s04-r1-mid.svg"><img src="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s04-r1.svg" width="100%" alt="Validate first. Step 1 works from a fresh clone with no installs. Any agent CLI. Step 3 plugs in any agent through the command adapter."></picture>
+<picture><source media="(max-width: 610px), (min-width: 768px) and (max-width: 895px)" srcset="https://raw.githubusercontent.com/nicedreamzapp/agent12/22c67283a9463411c5098c78baca57c7f63250c3/assets/readme/s04-banner-m.svg"><source media="(max-width: 1149px)" srcset="https://raw.githubusercontent.com/nicedreamzapp/agent12/22c67283a9463411c5098c78baca57c7f63250c3/assets/readme/s04-banner-mid.svg"><img src="https://raw.githubusercontent.com/nicedreamzapp/agent12/22c67283a9463411c5098c78baca57c7f63250c3/assets/readme/s04-banner.svg" width="100%" alt="04. Running it. Python 3.10 or newer"></picture>
+<picture><source media="(max-width: 610px), (min-width: 768px) and (max-width: 895px)" srcset="https://raw.githubusercontent.com/nicedreamzapp/agent12/22c67283a9463411c5098c78baca57c7f63250c3/assets/readme/s04-r1-m.svg"><source media="(max-width: 1149px)" srcset="https://raw.githubusercontent.com/nicedreamzapp/agent12/22c67283a9463411c5098c78baca57c7f63250c3/assets/readme/s04-r1-mid.svg"><img src="https://raw.githubusercontent.com/nicedreamzapp/agent12/22c67283a9463411c5098c78baca57c7f63250c3/assets/readme/s04-r1.svg" width="100%" alt="Validate first. Step 1 works from a fresh clone with no installs. Any agent CLI. Step 3 plugs in any agent through the command adapter."></picture>
 
 Requires Python 3.10+. The judges execute the agent's solution with the
 interpreter that runs the harness, so on 3.9 (the system `python3` on
@@ -124,12 +124,12 @@ machine and will not run elsewhere as-is.
 Discipline: temperature 0, fixed step/token caps per suite, fresh sandbox and
 fresh conversation per task, one variable moved per comparison.
 
-<img src="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s04-rule.svg" width="100%" alt="">
+<img src="https://raw.githubusercontent.com/nicedreamzapp/agent12/22c67283a9463411c5098c78baca57c7f63250c3/assets/readme/s04-rule.svg" width="100%" alt="">
 
 
 <a id="credits"></a>
-<picture><source media="(max-width: 610px), (min-width: 768px) and (max-width: 895px)" srcset="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s05-banner-m.svg"><source media="(max-width: 1149px)" srcset="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s05-banner-mid.svg"><img src="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s05-banner.svg" width="100%" alt="05. Built, limits and credits. What is mine, what is not, who helped"></picture>
-<picture><source media="(max-width: 610px), (min-width: 768px) and (max-width: 895px)" srcset="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s05-r1-m.svg"><source media="(max-width: 1149px)" srcset="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s05-r1-mid.svg"><img src="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s05-r1.svg" width="100%" alt="Filesystem judges. Each task has a judge plus known-good and known-bad solutions. Small sample. 20 tasks, repeat runs can differ by one."></picture>
+<picture><source media="(max-width: 610px), (min-width: 768px) and (max-width: 895px)" srcset="https://raw.githubusercontent.com/nicedreamzapp/agent12/22c67283a9463411c5098c78baca57c7f63250c3/assets/readme/s05-banner-m.svg"><source media="(max-width: 1149px)" srcset="https://raw.githubusercontent.com/nicedreamzapp/agent12/22c67283a9463411c5098c78baca57c7f63250c3/assets/readme/s05-banner-mid.svg"><img src="https://raw.githubusercontent.com/nicedreamzapp/agent12/22c67283a9463411c5098c78baca57c7f63250c3/assets/readme/s05-banner.svg" width="100%" alt="05. Built, limits and credits. What is mine, what is not, who helped"></picture>
+<picture><source media="(max-width: 610px), (min-width: 768px) and (max-width: 895px)" srcset="https://raw.githubusercontent.com/nicedreamzapp/agent12/22c67283a9463411c5098c78baca57c7f63250c3/assets/readme/s05-r1-m.svg"><source media="(max-width: 1149px)" srcset="https://raw.githubusercontent.com/nicedreamzapp/agent12/22c67283a9463411c5098c78baca57c7f63250c3/assets/readme/s05-r1-mid.svg"><img src="https://raw.githubusercontent.com/nicedreamzapp/agent12/22c67283a9463411c5098c78baca57c7f63250c3/assets/readme/s05-r1.svg" width="100%" alt="Filesystem judges. Each task has a judge plus known-good and known-bad solutions. Small sample. 20 tasks, repeat runs can differ by one."></picture>
 
 - [`runner.py`](runner.py): one model, one suite, a fresh sandbox per task.
 - [`adapters/`](adapters/): [`anvil.py`](adapters/anvil.py), [`anvil_dflash.py`](adapters/anvil_dflash.py)
@@ -168,5 +168,5 @@ Ran it on your own hardware, or think a judge got something wrong? Open an [issu
 
 MIT.
 
-<img src="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s05-rule.svg" width="100%" alt="">
+<img src="https://raw.githubusercontent.com/nicedreamzapp/agent12/22c67283a9463411c5098c78baca57c7f63250c3/assets/readme/s05-rule.svg" width="100%" alt="">
 
