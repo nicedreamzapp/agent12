@@ -1,5 +1,9 @@
 # Agent-12 — the local agent leaderboard
 
+<a id="what"></a>
+<picture><source media="(max-width: 610px), (min-width: 768px) and (max-width: 895px)" srcset="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s01-banner-m.svg"><source media="(max-width: 1149px)" srcset="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s01-banner-mid.svg"><img src="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s01-banner.svg" width="100%" alt="01. What it measures. Which model can actually be your agent on your own hardware"></picture>
+<picture><source media="(max-width: 610px), (min-width: 768px) and (max-width: 895px)" srcset="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s01-r1-m.svg"><source media="(max-width: 1149px)" srcset="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s01-r1-mid.svg"><img src="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s01-r1.svg" width="100%" alt="20 real agent tasks. 12 + 8 easy and hard tasks. 0 judged by prose, files only."></picture>
+
 **Which model can actually be your agent on your own hardware?**
 
 Not "which model scores highest on trivia" — which model, running locally on a
@@ -11,6 +15,13 @@ their prose.
 **In one sentence:** Agent-12 runs local LLMs through 20 real agent tasks
 (12 easy, 8 hard) in throwaway sandboxes and scores each one by checking the
 files the model left behind.
+
+<img src="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s01-rule.svg" width="100%" alt="">
+
+
+<a id="board"></a>
+<picture><source media="(max-width: 610px), (min-width: 768px) and (max-width: 895px)" srcset="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s02-banner-m.svg"><source media="(max-width: 1149px)" srcset="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s02-banner-mid.svg"><img src="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s02-banner.svg" width="100%" alt="02. The scoreboard. Local models on one Apple M5, 128 GB"></picture>
+<picture><source media="(max-width: 610px), (min-width: 768px) and (max-width: 895px)" srcset="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s02-r1-m.svg"><source media="(max-width: 1149px)" srcset="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s02-r1-mid.svg"><img src="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s02-r1.svg" width="100%" alt="12/12 Qwen3.6-35B-A3B easy. 8/8 Qwen3.6-35B-A3B hard. 6 models on the board."></picture>
 
 **Proof it works** (from the result files in [`results/`](results/), the same
 ones [`build_site.py`](build_site.py) renders into the [live board](https://nicedreamzapp.github.io/agent12/)):
@@ -38,7 +49,12 @@ MLX builds of the fighters: [huggingface.co/divinetribe](https://huggingface.co/
 
 **2026-08-22:** Qwen3.8-27B (8-bit) joins the local table from its own runs (see `writeups/qwen38_vs_qwen36.md`). Muse Glimmer 30B and Nemotron 3 Nano Omni appear in a separate **vendor-reported** section with their publishers' own numbers, credited and linked, until they get a real Agent-12 run.
 
-## What makes this benchmark different
+<img src="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s02-rule.svg" width="100%" alt="">
+
+
+<a id="method"></a>
+<picture><source media="(max-width: 610px), (min-width: 768px) and (max-width: 895px)" srcset="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s03-banner-m.svg"><source media="(max-width: 1149px)" srcset="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s03-banner-mid.svg"><img src="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s03-banner.svg" width="100%" alt="03. How it is judged. What makes this benchmark different"></picture>
+<picture><source media="(max-width: 610px), (min-width: 768px) and (max-width: 895px)" srcset="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s03-r1-m.svg"><source media="(max-width: 1149px)" srcset="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s03-r1-mid.svg"><img src="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s03-r1.svg" width="100%" alt="Consumer hardware. Every local row ran on one machine you can put on a desk. Harness included. The harness is part of the experiment. Judges validated. Each judge is tested before it judges."></picture>
 
 1. **It runs on consumer hardware.** Every local row on the scoreboard was
    produced on a single Apple-silicon machine you can put on a desk. Rows
@@ -57,7 +73,7 @@ MLX builds of the fighters: [huggingface.co/divinetribe](https://huggingface.co/
    this itself, so run the gate first. This gate has already caught one of our own
    judges demanding behavior that contradicted its own task spec.
 
-## The suites
+### The suites
 
 - **easy (12 tasks)** — everyday agent work: create/run a file, fix a failing
   test, rename across files, extract a config value, precise edits, tricky
@@ -71,7 +87,12 @@ MLX builds of the fighters: [huggingface.co/divinetribe](https://huggingface.co/
 Anti-cheat: tasks that ship a test file pin its hash — editing the test
 scores zero. Judges run the model's artifacts in a fresh subprocess.
 
-## Running it
+<img src="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s03-rule.svg" width="100%" alt="">
+
+
+<a id="run"></a>
+<picture><source media="(max-width: 610px), (min-width: 768px) and (max-width: 895px)" srcset="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s04-banner-m.svg"><source media="(max-width: 1149px)" srcset="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s04-banner-mid.svg"><img src="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s04-banner.svg" width="100%" alt="04. Running it. Python 3.10 or newer"></picture>
+<picture><source media="(max-width: 610px), (min-width: 768px) and (max-width: 895px)" srcset="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s04-r1-m.svg"><source media="(max-width: 1149px)" srcset="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s04-r1-mid.svg"><img src="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s04-r1.svg" width="100%" alt="Validate first. Step 1 works from a fresh clone with no installs. Any agent CLI. Step 3 plugs in any agent through the command adapter."></picture>
 
 Requires Python 3.10+. The judges execute the agent's solution with the
 interpreter that runs the harness, so on 3.9 (the system `python3` on
@@ -103,7 +124,12 @@ machine and will not run elsewhere as-is.
 Discipline: temperature 0, fixed step/token caps per suite, fresh sandbox and
 fresh conversation per task, one variable moved per comparison.
 
-## What I built (Matt Macosko)
+<img src="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s04-rule.svg" width="100%" alt="">
+
+
+<a id="credits"></a>
+<picture><source media="(max-width: 610px), (min-width: 768px) and (max-width: 895px)" srcset="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s05-banner-m.svg"><source media="(max-width: 1149px)" srcset="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s05-banner-mid.svg"><img src="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s05-banner.svg" width="100%" alt="05. Built, limits and credits. What is mine, what is not, who helped"></picture>
+<picture><source media="(max-width: 610px), (min-width: 768px) and (max-width: 895px)" srcset="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s05-r1-m.svg"><source media="(max-width: 1149px)" srcset="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s05-r1-mid.svg"><img src="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s05-r1.svg" width="100%" alt="Filesystem judges. Each task has a judge plus known-good and known-bad solutions. Small sample. 20 tasks, repeat runs can differ by one."></picture>
 
 - [`runner.py`](runner.py): one model, one suite, a fresh sandbox per task.
 - [`adapters/`](adapters/): [`anvil.py`](adapters/anvil.py), [`anvil_dflash.py`](adapters/anvil_dflash.py)
@@ -118,26 +144,29 @@ The Python floor in [`envcheck.py`](envcheck.py) is from [@galashko](https://git
 Upstream, not built here: the models, MLX and mlx-lm, mlx-dspark and the
 DFlash 2 drafter, ds4.c, and Brave.
 
-## Known limits
+### Known limits
 
 - The Anvil engine is outside this repo, so model rows cannot be reproduced from this clone alone.
 - The held-out pool in [CONTAMINATION.md](CONTAMINATION.md) is private and `build_site.py` does
   not render its contamination flag yet. Board scores come from the 20 public tasks.
 - 20 tasks is a small sample. Repeat runs can differ by one task (the `_s2`..`_s4` files in `results/`).
 
-## Docs
+### Docs
 
 - [METHODOLOGY.md](METHODOLOGY.md) — how scoring, judging, and validation work
 - [CONTAMINATION.md](CONTAMINATION.md) — public vs held-out tasks, rotation policy
 
-## Report a result or a problem
+### Report a result or a problem
 
 Ran it on your own hardware, or think a judge got something wrong? Open an [issue](https://github.com/nicedreamzapp/agent12/issues/new) with your chip, RAM, serving stack, model and score. Independent runs are what make the table worth trusting ([#5](https://github.com/nicedreamzapp/agent12/issues/5)).
 
-## Contributors
+### Contributors
 
 - [@galashko](https://github.com/galashko) reproduced the Qwen3.6-35B numbers on an M5 Max with a different serving stack ([#1](https://github.com/nicedreamzapp/agent12/issues/1)), found that the judge failed correct code on Python 3.9, and fixed it: runs now record the interpreter and judge validation refuses anything below 3.10 ([#2](https://github.com/nicedreamzapp/agent12/pull/2)).
 
-## License
+### License
 
 MIT.
+
+<img src="https://raw.githubusercontent.com/nicedreamzapp/agent12/main/assets/readme/s05-rule.svg" width="100%" alt="">
+
