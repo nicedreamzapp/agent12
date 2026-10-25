@@ -79,3 +79,7 @@ fresh conversation per task, one variable moved per comparison.
 ## License
 
 MIT.
+
+## Retired models
+
+Every model we tested and deleted, and what beat it: [RETIRED.md](RETIRED.md). The model janitor keeps it current.
