@@ -28,3 +28,5 @@ winner, the loser is retired the same day with the reason.
 | 2026-10-25 | Small LLM scouts: OneJev 0.8B, Intern-Decision 0.8B, Supertron3 0.8B | LLM | 6 GB | none | Scout 2026-09-30; never wired into a tool |
 | 2026-10-25 | whisper-large-v3 (MLX) | speech | 3 GB | whisper-large-v3-turbo | Tools use the turbo build |
 | 2026-10-25 | mlx-community/LFM2.5-VL-1.6B-bf16 | model | 3 GB | none | no tool loads it; last used 2026-10-01 (Matts-MacBook-Pro) |
+| 2026-10-25 | mlx-community/LFM2.5-VL-1.6B-bf16 | model | 3 GB | none | no tool loads it; last used 2026-10-01 (M5) |
+| 2026-10-25 | ACE-Step 1.5 XL-turbo (fp32 + bf16) | music | 30 GB | ACE-Step 1.5 turbo | Song Forge renders every song on the regular turbo; XL never wired in, last opened 2026-09-10 |
