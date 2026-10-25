@@ -30,3 +30,4 @@ winner, the loser is retired the same day with the reason.
 | 2026-10-25 | mlx-community/LFM2.5-VL-1.6B-bf16 | model | 3 GB | none | no tool loads it; last used 2026-10-01 (Matts-MacBook-Pro) |
 | 2026-10-25 | mlx-community/LFM2.5-VL-1.6B-bf16 | model | 3 GB | none | no tool loads it; last used 2026-10-01 (M5) |
 | 2026-10-25 | ACE-Step 1.5 XL-turbo (fp32 + bf16) | music | 30 GB | ACE-Step 1.5 turbo | Song Forge renders every song on the regular turbo; XL never wired in, last opened 2026-09-10 |
+| 2026-10-25 | iPhone15,3 27.0 (24A5390f) | Xcode iPhone support files | 7 GB | none | no tool loads it; last used 2026-08-21 (Matts-MacBook-Pro) |
