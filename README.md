@@ -170,3 +170,7 @@ MIT.
 
 <img src="https://raw.githubusercontent.com/nicedreamzapp/agent12/22c67283a9463411c5098c78baca57c7f63250c3/assets/readme/s05-rule.svg" width="100%" alt="">
 
+
+## Retired models
+
+Every model we tested and deleted, and what beat it: [RETIRED.md](RETIRED.md). The model janitor keeps it current.
