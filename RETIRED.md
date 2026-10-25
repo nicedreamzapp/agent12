@@ -31,3 +31,6 @@ winner, the loser is retired the same day with the reason.
 | 2026-10-25 | mlx-community/LFM2.5-VL-1.6B-bf16 | model | 3 GB | none | no tool loads it; last used 2026-10-01 (M5) |
 | 2026-10-25 | ACE-Step 1.5 XL-turbo (fp32 + bf16) | music | 30 GB | ACE-Step 1.5 turbo | Song Forge renders every song on the regular turbo; XL never wired in, last opened 2026-09-10 |
 | 2026-10-25 | iPhone15,3 27.0 (24A5390f) | Xcode iPhone support files | 7 GB | none | no tool loads it; last used 2026-08-21 (Matts-MacBook-Pro) |
+| 2026-10-25 | Wan/FLUX/Hunyuan add-ons: lightx2v + Wan 4-step LoRAs, Wan 2.1 VAE, clip_vision_h, FLUX ae VAE, Hunyuan VAE | add-ons | 9 GB | (families retired) | Only worked with Wan / FLUX / Hunyuan, all retired |
+| 2026-10-25 | VizWiz-Caps dataset | dataset | 8 GB | none | For the vision-narrator retrain experiment, dropped 2026-10-24 |
+| 2026-10-25 | Song Forge parked RVC voice engines | voice | 2 GB | none | Parked 2026-08-06 (AGPL license risk), never wired in |
