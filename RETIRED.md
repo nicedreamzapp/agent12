@@ -27,3 +27,4 @@ winner, the loser is retired the same day with the reason.
 | 2026-10-25 | OCR scouts: TeleOCR, PaddleOCR-VL 1.5 + 1.6, Xiaomi-OCR-0, OvisOCR2 | OCR | 8 GB | none | OCR scout 2026-09-30; never wired into a tool |
 | 2026-10-25 | Small LLM scouts: OneJev 0.8B, Intern-Decision 0.8B, Supertron3 0.8B | LLM | 6 GB | none | Scout 2026-09-30; never wired into a tool |
 | 2026-10-25 | whisper-large-v3 (MLX) | speech | 3 GB | whisper-large-v3-turbo | Tools use the turbo build |
+| 2026-10-25 | mlx-community/LFM2.5-VL-1.6B-bf16 | model | 3 GB | none | no tool loads it; last used 2026-10-01 (Matts-MacBook-Pro) |
