@@ -1,42 +1,39 @@
 {
  "suite": "vision-read-text",
- "version": 1,
- "scoring": {
-  "metric": "accuracy",
-  "rule": "exact string match after normalizing: lowercase, collapse whitespace, strip punctuation that is not part of a number, and strip a trailing period. Nothing fuzzy, nothing graded by a model, so two people running this get the same number.",
-  "per_item": "1 if the normalized answer equals the normalized expected string, else 0",
-  "accuracy": "100 x items correct / items attempted"
- },
- "prompt": "Read the text in this image. Reply with only the text, nothing else. If there is no text, reply exactly: NO TEXT",
+ "version": 2,
+ "scoring": "exact match after normalizing case, whitespace and punctuation outside numbers",
+ "prompt": "Read the text on the sign. Reply with only the text, nothing else.",
  "notes": [
-  "Items are sourced by URL so nobody has to ship copyrighted pictures in a git repo. The downloader records the sha256 of every file it fetches, and refuses to score a run where a file's hash changed, because a moved URL would silently change the test.",
-  "Expected strings are the text a person reads off the picture, in reading order, not a caption.",
-  "A model that adds commentary around the right text scores zero on purpose. For a camera that has to speak an answer out loud, extra words are the failure."
+  "Every item is one sign filling the frame with no competing text, checked by eye before it was added. Images with a shop name or a second plate in shot were rejected: they make 'read the text' ambiguous, and then the score measures the prompt, not the model.",
+  "Images are raster only. An SVG was in version 1 and no vision model could open it.",
+  "Each url was fetched and confirmed to return 200 the day this file was written. Version 1 shipped with two dead links and this is why the runner now fails loudly on a bad url instead of scoring the run.",
+  "Three items is small and the number says so. The harness takes more: add an item here, run it, submit the result."
  ],
  "items": [
   {
    "id": "wiki-stop-sign",
-   "url": "https://upload.wikimedia.org/wikipedia/commons/f/f9/STOP_sign.jpg",
    "expected": "stop",
-   "kind": "sign",
-   "license": "public domain (US federal sign design), Wikimedia Commons"
+   "url": "https://upload.wikimedia.org/wikipedia/commons/f/f9/STOP_sign.jpg",
+   "license": "CC BY 3.0",
+   "credit": "Bidgee, Wikimedia Commons",
+   "source": "https://commons.wikimedia.org/wiki/File:STOP_sign.jpg"
   },
   {
-   "id": "wiki-one-way",
-   "url": "https://upload.wikimedia.org/wikipedia/commons/8/8c/One_Way_sign.jpg",
-   "expected": "one way",
-   "kind": "sign",
-   "license": "public domain, Wikimedia Commons"
+   "id": "wiki-fire-exit",
+   "expected": "fire exit please keep clear",
+   "url": "https://upload.wikimedia.org/wikipedia/commons/7/75/Old-fashioned_Fire_Exit_sign_-_geograph.org.uk_-_959836.jpg",
+   "license": "CC BY-SA 2.0",
+   "credit": "Chris Downer, Wikimedia Commons",
+   "source": "https://commons.wikimedia.org/wiki/File:Old-fashioned_Fire_Exit_sign_-_geograph.org.uk_-_959836.jpg"
   },
   {
-   "id": "wiki-keyboard-esc",
-   "url": "https://upload.wikimedia.org/wikipedia/commons/4/44/Computer_keyboard_US.svg",
-   "expected": "esc",
-   "kind": "small text",
-   "license": "CC0, Wikimedia Commons",
-   "crop": "top-left key",
-   "status": "draft, needs the crop step written"
+   "id": "wiki-speed-limit-25",
+   "expected": "speed limit 25",
+   "url": "https://upload.wikimedia.org/wikipedia/commons/9/94/Old_Speed_Limit_25_Sign_-_Arab_AL_%2831039629927%29.jpg",
+   "license": "CC BY-SA 2.0",
+   "credit": "formulanone, Wikimedia Commons",
+   "source": "https://commons.wikimedia.org/wiki/File:Old_Speed_Limit_25_Sign_-_Arab_AL_(31039629927).jpg"
   }
  ],
- "_status": "The runner and scorer work. The item set is deliberately tiny and marked as such: three items is a smoke test, not a benchmark. Adding items is the most useful contribution this suite can get, and the rule is one line of JSON per item with a stable public URL, the exact text, and the license."
+ "_status": "harness live, images verified 2026-10-30"
 }
