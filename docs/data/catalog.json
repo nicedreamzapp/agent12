@@ -1,5 +1,5 @@
 {
- "built_utc": "2026-10-30T11:22:50Z",
+ "built_utc": "2026-10-30T19:08:50Z",
  "hardware_default": "Apple M5, 128 GB unified memory",
  "assumptions": {
   "usable_fraction_of_unified_memory": 0.75,
@@ -908,6 +908,21 @@
    "page": "mac-fit/manjunathshiva",
    "source": "measured here",
    "hardware": null
+  },
+  {
+   "suite": "vision-read-text",
+   "model": "gemma-4-31b-it-abliterated-VL-mlx-8bit (local build)",
+   "model_url": null,
+   "hardware": "Apple M4 Pro, 64 GB unified memory",
+   "runtime": null,
+   "n_items": 3,
+   "source": "community",
+   "submitted_by": "divinetribe",
+   "submitted_by_url": null,
+   "log_url": null,
+   "notes": "load 11.2s, max_tokens 48, manifest v2, exact-match scoring",
+   "accuracy": 100.0,
+   "first_token_s": 5.45
   }
  ]
 }

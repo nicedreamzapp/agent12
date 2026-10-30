@@ -1,0 +1,37 @@
+{
+ "suite": "vision-read-text",
+ "model": "gemma-4-31b-it-abliterated-VL-mlx-8bit (local build)",
+ "model_url": null,
+ "hardware": "Apple M4 Pro, 64 GB unified memory",
+ "metrics": {
+  "accuracy": 100.0,
+  "first_token_s": 5.45
+ },
+ "n_items": 3,
+ "run_utc": "2026-10-30T18:58:39Z",
+ "submitted_by": "divinetribe",
+ "notes": "load 11.2s, max_tokens 48, manifest v2, exact-match scoring",
+ "items": [
+  {
+   "id": "wiki-stop-sign",
+   "expected": "stop",
+   "got": "STOP",
+   "pass": true,
+   "seconds": 7.6
+  },
+  {
+   "id": "wiki-fire-exit",
+   "expected": "fire exit please keep clear",
+   "got": "FIRE EXIT\nPLEASE KEEP CLEAR",
+   "pass": true,
+   "seconds": 4.42
+  },
+  {
+   "id": "wiki-speed-limit-25",
+   "expected": "speed limit 25",
+   "got": "SPEED LIMIT 25",
+   "pass": true,
+   "seconds": 4.32
+  }
+ ]
+}
