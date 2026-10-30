@@ -1,0 +1,80 @@
+name: Submit a result
+description: Add a local model run to Agent-12, including the small tests nobody else logs
+title: "result: <suite> / <model>"
+labels: ["submission"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Any suite in [suites/registry.json](https://github.com/nicedreamzapp/agent12/blob/main/suites/registry.json),
+        including the ones marked draft, which have no harness yet. If you ran something
+        that is not listed, say so in notes and it gets added.
+
+        One run per issue. A number with no machine named cannot go on the board.
+  - type: input
+    id: suite
+    attributes:
+      label: Suite
+      description: The id from the registry, e.g. vision-read-text, asr, long-context, tool-calls
+      placeholder: vision-read-text
+    validations:
+      required: true
+  - type: input
+    id: model
+    attributes:
+      label: Model
+      description: The exact repo id, so it can be downloaded and checked
+      placeholder: mlx-community/Qwen3-VL-8B-Instruct-4bit
+    validations:
+      required: true
+  - type: input
+    id: hardware
+    attributes:
+      label: Hardware, memory included
+      placeholder: Apple M4 Pro, 48 GB unified memory
+    validations:
+      required: true
+  - type: input
+    id: runtime
+    attributes:
+      label: Runtime and OS
+      placeholder: mlx-lm 0.28.4, macOS 26.1
+    validations:
+      required: true
+  - type: textarea
+    id: metrics
+    attributes:
+      label: Numbers
+      description: Use the metric names the suite lists. One per line.
+      placeholder: |
+        accuracy: 71.5
+        first_token_s: 1.9
+    validations:
+      required: true
+  - type: input
+    id: n_items
+    attributes:
+      label: How many test items
+      placeholder: "40"
+    validations:
+      required: true
+  - type: input
+    id: log_url
+    attributes:
+      label: Raw log or gist
+      description: Optional. Without it the row is marked unverified rather than dropped.
+      placeholder: https://gist.github.com/...
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything that changes how the number should be read
+      placeholder: Thermal throttling after item 20. Skipped two items, both handwriting.
+  - type: checkboxes
+    id: honest
+    attributes:
+      label: Before you post
+      options:
+        - label: I ran this myself on the hardware named above, and these are the numbers it gave.
+          required: true
+        - label: This is one run, not several averaged together.
+          required: true

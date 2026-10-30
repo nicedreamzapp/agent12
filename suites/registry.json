@@ -1,0 +1,98 @@
+{
+ "_comment": "Every test family Agent-12 logs. The big benchmarks already have coverage everywhere; the point of this file is that the small ones get logged too, with the same shape, so they can be compared instead of argued about.",
+ "version": 1,
+ "metrics": {
+  "pass_rate": {"unit": "%", "better": "high", "range": [0, 100]},
+  "tok_s": {"unit": "tokens/sec", "better": "high", "range": [0, 10000]},
+  "first_token_s": {"unit": "seconds", "better": "low", "range": [0, 600]},
+  "wall_s": {"unit": "seconds", "better": "low", "range": [0, 100000]},
+  "peak_ram_gb": {"unit": "GB", "better": "low", "range": [0, 2048]},
+  "wer": {"unit": "%", "better": "low", "range": [0, 100]},
+  "map50": {"unit": "mAP@50", "better": "high", "range": [0, 1]},
+  "accuracy": {"unit": "%", "better": "high", "range": [0, 100]},
+  "recall_at_k": {"unit": "%", "better": "high", "range": [0, 100]}
+ },
+ "suites": [
+  {
+   "id": "agent-easy",
+   "title": "Agent tasks, easy",
+   "measures": "Twelve filesystem-judged coding tasks. Does the model actually edit files, not describe editing them.",
+   "metrics": ["pass_rate", "wall_s", "tok_s"],
+   "status": "live",
+   "how": "python furball_bench.py --suite easy --adapter anvil",
+   "results_glob": "results/*_easy_*.json"
+  },
+  {
+   "id": "agent-hard",
+   "title": "Agent tasks, hard",
+   "measures": "The same harness on tasks that need multi-file reasoning and exact output.",
+   "metrics": ["pass_rate", "wall_s", "tok_s"],
+   "status": "live",
+   "how": "python furball_bench.py --suite hard --adapter anvil",
+   "results_glob": "results/*_hard_*.json"
+  },
+  {
+   "id": "mac-fit",
+   "title": "Will it fit a Mac",
+   "measures": "Unified memory a model needs, from its own file list and config. Not a speed test.",
+   "metrics": ["peak_ram_gb"],
+   "status": "live",
+   "how": "see docs/mac-fit",
+   "results_glob": null
+  },
+  {
+   "id": "vision-describe",
+   "title": "Vision: describe a photo",
+   "measures": "One fixed set of photos, one fixed prompt. Is the description right, and does it name what matters rather than everything.",
+   "metrics": ["accuracy", "first_token_s", "tok_s"],
+   "status": "draft",
+   "how": "not written yet, submissions welcome",
+   "results_glob": null
+  },
+  {
+   "id": "vision-read-text",
+   "title": "Vision: read the text in the picture",
+   "measures": "Signs, labels, handwriting, a screenshot. Exact-string scored, so there is nothing to argue about.",
+   "metrics": ["accuracy", "first_token_s"],
+   "status": "draft",
+   "how": "not written yet, submissions welcome",
+   "results_glob": null
+  },
+  {
+   "id": "vision-detect",
+   "title": "Vision: find the object",
+   "measures": "Detection models on a fixed image set, scored on boxes, the test that matters for a camera that has to act.",
+   "metrics": ["map50", "wall_s"],
+   "status": "draft",
+   "how": "not written yet, submissions welcome",
+   "results_glob": null
+  },
+  {
+   "id": "asr",
+   "title": "Speech to text",
+   "measures": "Word error rate on the same clips, including noisy and accented ones, which is where the published numbers stop being true.",
+   "metrics": ["wer", "wall_s"],
+   "status": "draft",
+   "how": "not written yet, submissions welcome",
+   "results_glob": null
+  },
+  {
+   "id": "long-context",
+   "title": "Long context, actually retrieved",
+   "measures": "A fact buried at a known depth. Does the model find it at 8k, 32k, 128k, and what does the memory do while it tries.",
+   "metrics": ["recall_at_k", "peak_ram_gb", "tok_s"],
+   "status": "draft",
+   "how": "not written yet, submissions welcome",
+   "results_glob": null
+  },
+  {
+   "id": "tool-calls",
+   "title": "Tool calls that parse",
+   "measures": "How often a model emits a tool call the runtime can actually execute, which is the failure that kills local agents.",
+   "metrics": ["pass_rate"],
+   "status": "draft",
+   "how": "not written yet, submissions welcome",
+   "results_glob": null
+  }
+ ]
+}

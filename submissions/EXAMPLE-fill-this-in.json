@@ -1,0 +1,32 @@
+{
+ "_how_to_use_this_file": "Copy it, rename it <suite>--<model>--<your-handle>.json, fill it in, open a pull request. Or open the 'Submit a result' issue and paste it there and it gets filed for you. Everything below marked required has to be real; a field you cannot fill honestly is left out, never guessed.",
+
+ "suite": "vision-read-text",
+ "model": "mlx-community/Qwen3-VL-8B-Instruct-4bit",
+ "model_url": "https://huggingface.co/mlx-community/Qwen3-VL-8B-Instruct-4bit",
+
+ "hardware": "Apple M4 Pro, 48 GB unified memory",
+ "runtime": "mlx-lm 0.28.4, macOS 26.1",
+ "quant": "4-bit",
+
+ "metrics": {
+  "accuracy": 71.5,
+  "first_token_s": 1.9
+ },
+
+ "n_items": 40,
+ "run_utc": "2026-10-30T09:15:00Z",
+
+ "submitted_by": "your-handle",
+ "submitted_by_url": "https://github.com/your-handle",
+ "log_url": "https://gist.github.com/your-handle/raw-output-here",
+ "notes": "Anything that would change how someone reads the number. Thermal throttling, a prompt you had to change, items you skipped and why.",
+
+ "_rules": [
+  "One file per run. Do not average several runs into one file.",
+  "Name the hardware exactly, including memory. A number without a machine is not a result.",
+  "Only metrics listed for that suite in suites/registry.json, by their exact names.",
+  "If you cannot share the log, say so in notes. The row gets marked unverified, not dropped.",
+  "Vendor-published numbers do not belong here. Those go in the reported section, with the source."
+ ]
+}
