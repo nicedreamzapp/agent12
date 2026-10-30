@@ -45,6 +45,7 @@ tr:last-child td{border-bottom:0}
 border:1px solid var(--line);color:var(--dim)}
 .live{color:var(--good);border-color:#1d4a30}
 .draft{color:var(--warn);border-color:#4a3a10}
+.ready{color:var(--accent);border-color:#174a5e}
 .tag{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;padding:1px 6px;
 border-radius:4px;white-space:nowrap}
 .t-mine{background:#14341f;color:var(--good)}
@@ -124,7 +125,8 @@ def fmt(metrics, reg):
 
 def suite_block(suite, meta, reg):
     rows = mine_rows(suite, meta) + community_rows(suite["id"])
-    status = "live" if suite["status"] == "live" else "draft"
+    status = ("live" if suite["status"] == "live"
+              else "ready" if suite["status"] == "harness ready" else "draft")
     head = (f'<h2>{html.escape(suite["title"])} '
             f'<span class="pill {status}">{status}</span></h2>'
             f'<p class="measures">{html.escape(suite["measures"])}</p>')
@@ -181,8 +183,9 @@ def main():
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
 
     live = [s for s in reg["suites"] if s["status"] == "live"]
-    draft = [s for s in reg["suites"] if s["status"] != "live"]
-    blocks = "".join(suite_block(s, meta, reg) for s in live + draft)
+    ready = [s for s in reg["suites"] if s["status"] == "harness ready"]
+    draft = [s for s in reg["suites"] if s["status"] not in ("live", "harness ready")]
+    blocks = "".join(suite_block(s, meta, reg) for s in live + ready + draft)
     n_comm = len([p for p in glob.glob(os.path.join(ROOT, "submissions", "*.json"))
                   if not os.path.basename(p).startswith("EXAMPLE")])
 
@@ -202,7 +205,13 @@ here, {n_comm} community submission{'s' if n_comm != 1 else ''} so far, and ever
 who ran it and on what.</p>
 
 <div class="card">
-<b>Add yours.</b> Copy
+<b>Just want to know what to run?</b> <a href="../pick/">Pick your Mac and the job</a>
+and it answers with one model name.
+</div>
+
+<div class="card">
+<b>Add yours.</b> The <a href="../submit/">submit form</a> writes the file for you and
+checks it before you file it, no git needed. Or copy
 <a href="https://github.com/nicedreamzapp/agent12/blob/main/submissions/EXAMPLE-fill-this-in.json">the
 template</a>, fill it in, open a pull request, or
 <a href="https://github.com/nicedreamzapp/agent12/issues/new?template=submit-result.yml">open
@@ -225,7 +234,8 @@ Built {datetime.now(timezone.utc).strftime('%Y-%m-%d')}. Run
 </div>
 </div></body></html>""")
     print(f"wrote {OUT}")
-    print(f"  {len(live)} live suites, {len(draft)} draft, {n_comm} community submissions")
+    print(f"  {len(live)} live, {len(ready)} harness ready, {len(draft)} draft, "
+          f"{n_comm} community submissions")
 
 
 if __name__ == "__main__":

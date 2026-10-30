@@ -1,0 +1,42 @@
+{
+ "suite": "vision-read-text",
+ "version": 1,
+ "scoring": {
+  "metric": "accuracy",
+  "rule": "exact string match after normalizing: lowercase, collapse whitespace, strip punctuation that is not part of a number, and strip a trailing period. Nothing fuzzy, nothing graded by a model, so two people running this get the same number.",
+  "per_item": "1 if the normalized answer equals the normalized expected string, else 0",
+  "accuracy": "100 x items correct / items attempted"
+ },
+ "prompt": "Read the text in this image. Reply with only the text, nothing else. If there is no text, reply exactly: NO TEXT",
+ "notes": [
+  "Items are sourced by URL so nobody has to ship copyrighted pictures in a git repo. The downloader records the sha256 of every file it fetches, and refuses to score a run where a file's hash changed, because a moved URL would silently change the test.",
+  "Expected strings are the text a person reads off the picture, in reading order, not a caption.",
+  "A model that adds commentary around the right text scores zero on purpose. For a camera that has to speak an answer out loud, extra words are the failure."
+ ],
+ "items": [
+  {
+   "id": "wiki-stop-sign",
+   "url": "https://upload.wikimedia.org/wikipedia/commons/f/f9/STOP_sign.jpg",
+   "expected": "stop",
+   "kind": "sign",
+   "license": "public domain (US federal sign design), Wikimedia Commons"
+  },
+  {
+   "id": "wiki-one-way",
+   "url": "https://upload.wikimedia.org/wikipedia/commons/8/8c/One_Way_sign.jpg",
+   "expected": "one way",
+   "kind": "sign",
+   "license": "public domain, Wikimedia Commons"
+  },
+  {
+   "id": "wiki-keyboard-esc",
+   "url": "https://upload.wikimedia.org/wikipedia/commons/4/44/Computer_keyboard_US.svg",
+   "expected": "esc",
+   "kind": "small text",
+   "license": "CC0, Wikimedia Commons",
+   "crop": "top-left key",
+   "status": "draft, needs the crop step written"
+  }
+ ],
+ "_status": "The runner and scorer work. The item set is deliberately tiny and marked as such: three items is a smoke test, not a benchmark. Adding items is the most useful contribution this suite can get, and the rule is one line of JSON per item with a stable public URL, the exact text, and the license."
+}

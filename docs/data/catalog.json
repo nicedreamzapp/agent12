@@ -1,0 +1,897 @@
+{
+ "built_utc": "2026-10-30T11:19:29Z",
+ "hardware_default": "Apple M5, 128 GB unified memory",
+ "assumptions": {
+  "usable_fraction_of_unified_memory": 0.75,
+  "runtime_overhead_gb": 1.2,
+  "kv_cache": "2 x layers x kv_heads x head_dim x 2 bytes (fp16) x tokens"
+ },
+ "suites": [
+  {
+   "id": "agent-easy",
+   "title": "Agent tasks, easy",
+   "measures": "Twelve filesystem-judged coding tasks. Does the model actually edit files, not describe editing them.",
+   "metrics": [
+    "pass_rate",
+    "wall_s",
+    "tok_s"
+   ],
+   "status": "live"
+  },
+  {
+   "id": "agent-hard",
+   "title": "Agent tasks, hard",
+   "measures": "The same harness on tasks that need multi-file reasoning and exact output.",
+   "metrics": [
+    "pass_rate",
+    "wall_s",
+    "tok_s"
+   ],
+   "status": "live"
+  },
+  {
+   "id": "mac-fit",
+   "title": "Will it fit a Mac",
+   "measures": "Unified memory a model needs, from its own file list and config. Not a speed test.",
+   "metrics": [
+    "peak_ram_gb"
+   ],
+   "status": "live"
+  },
+  {
+   "id": "vision-describe",
+   "title": "Vision: describe a photo",
+   "measures": "One fixed set of photos, one fixed prompt. Is the description right, and does it name what matters rather than everything.",
+   "metrics": [
+    "accuracy",
+    "first_token_s",
+    "tok_s"
+   ],
+   "status": "draft"
+  },
+  {
+   "id": "vision-read-text",
+   "title": "Vision: read the text in the picture",
+   "measures": "Signs, labels, handwriting, a screenshot. Exact-string scored, so there is nothing to argue about.",
+   "metrics": [
+    "accuracy",
+    "first_token_s"
+   ],
+   "status": "harness ready"
+  },
+  {
+   "id": "vision-detect",
+   "title": "Vision: find the object",
+   "measures": "Detection models on a fixed image set, scored on boxes, the test that matters for a camera that has to act.",
+   "metrics": [
+    "map50",
+    "wall_s"
+   ],
+   "status": "draft"
+  },
+  {
+   "id": "asr",
+   "title": "Speech to text",
+   "measures": "Word error rate on the same clips, including noisy and accented ones, which is where the published numbers stop being true.",
+   "metrics": [
+    "wer",
+    "wall_s"
+   ],
+   "status": "draft"
+  },
+  {
+   "id": "long-context",
+   "title": "Long context, actually retrieved",
+   "measures": "A fact buried at a known depth. Does the model find it at 8k, 32k, 128k, and what does the memory do while it tries.",
+   "metrics": [
+    "recall_at_k",
+    "peak_ram_gb",
+    "tok_s"
+   ],
+   "status": "draft"
+  },
+  {
+   "id": "tool-calls",
+   "title": "Tool calls that parse",
+   "measures": "How often a model emits a tool call the runtime can actually execute, which is the failure that kills local agents.",
+   "metrics": [
+    "pass_rate"
+   ],
+   "status": "draft"
+  }
+ ],
+ "metrics": {
+  "pass_rate": {
+   "unit": "%",
+   "better": "high",
+   "range": [
+    0,
+    100
+   ]
+  },
+  "tok_s": {
+   "unit": "tokens/sec",
+   "better": "high",
+   "range": [
+    0,
+    10000
+   ]
+  },
+  "first_token_s": {
+   "unit": "seconds",
+   "better": "low",
+   "range": [
+    0,
+    600
+   ]
+  },
+  "wall_s": {
+   "unit": "seconds",
+   "better": "low",
+   "range": [
+    0,
+    100000
+   ]
+  },
+  "peak_ram_gb": {
+   "unit": "GB",
+   "better": "low",
+   "range": [
+    0,
+    2048
+   ]
+  },
+  "wer": {
+   "unit": "%",
+   "better": "low",
+   "range": [
+    0,
+    100
+   ]
+  },
+  "map50": {
+   "unit": "mAP@50",
+   "better": "high",
+   "range": [
+    0,
+    1
+   ]
+  },
+  "accuracy": {
+   "unit": "%",
+   "better": "high",
+   "range": [
+    0,
+    100
+   ]
+  },
+  "recall_at_k": {
+   "unit": "%",
+   "better": "high",
+   "range": [
+    0,
+    100
+   ]
+  }
+ },
+ "rows": [
+  {
+   "suite": "agent-easy",
+   "model": "Qwen3-Coder-30B-A3B (MLX 8-bit)",
+   "model_key": "qwen3-coder-30b",
+   "pass_rate": 100.0,
+   "n_items": 12,
+   "wall_s": 42.6,
+   "tok_s": 84.3,
+   "kind": "local",
+   "hardware": "Apple M5, 128 GB unified memory",
+   "source": "measured here",
+   "repo": "lmstudio-community/Qwen3-Coder-30B-A3B-Instruct-MLX-8bit",
+   "weights_gb": 32.4,
+   "layer_note": "all 48 layers",
+   "by_context": {
+    "4096": {
+     "needs_gb": 34.0,
+     "smallest_mac_gb": 48
+    },
+    "8192": {
+     "needs_gb": 34.4,
+     "smallest_mac_gb": 48
+    },
+    "32768": {
+     "needs_gb": 36.9,
+     "smallest_mac_gb": 64
+    },
+    "131072": {
+     "needs_gb": 46.5,
+     "smallest_mac_gb": 64
+    }
+   }
+  },
+  {
+   "suite": "agent-hard",
+   "model": "Qwen3-Coder-30B-A3B (MLX 8-bit)",
+   "model_key": "qwen3-coder-30b",
+   "pass_rate": 87.5,
+   "n_items": 8,
+   "wall_s": 391.5,
+   "tok_s": 84.3,
+   "kind": "local",
+   "hardware": "Apple M5, 128 GB unified memory",
+   "source": "measured here",
+   "repo": "lmstudio-community/Qwen3-Coder-30B-A3B-Instruct-MLX-8bit",
+   "weights_gb": 32.4,
+   "layer_note": "all 48 layers",
+   "by_context": {
+    "4096": {
+     "needs_gb": 34.0,
+     "smallest_mac_gb": 48
+    },
+    "8192": {
+     "needs_gb": 34.4,
+     "smallest_mac_gb": 48
+    },
+    "32768": {
+     "needs_gb": 36.9,
+     "smallest_mac_gb": 64
+    },
+    "131072": {
+     "needs_gb": 46.5,
+     "smallest_mac_gb": 64
+    }
+   }
+  },
+  {
+   "suite": "agent-easy",
+   "model": "Qwen3.6-35B-A3B (MLX 8-bit)",
+   "model_key": "qwen3.6-35b",
+   "pass_rate": 100.0,
+   "n_items": 12,
+   "wall_s": 64.2,
+   "tok_s": 46.2,
+   "kind": "local",
+   "hardware": "Apple M5, 128 GB unified memory",
+   "source": "measured here",
+   "repo": "lmstudio-community/Qwen3.6-35B-A3B-MLX-8bit",
+   "weights_gb": 37.7,
+   "layer_note": "10 of 40 layers hold full attention",
+   "by_context": {
+    "4096": {
+     "needs_gb": 39.0,
+     "smallest_mac_gb": 64
+    },
+    "8192": {
+     "needs_gb": 39.1,
+     "smallest_mac_gb": 64
+    },
+    "32768": {
+     "needs_gb": 39.6,
+     "smallest_mac_gb": 64
+    },
+    "131072": {
+     "needs_gb": 41.6,
+     "smallest_mac_gb": 64
+    }
+   }
+  },
+  {
+   "suite": "agent-hard",
+   "model": "Qwen3.6-35B-A3B (MLX 8-bit)",
+   "model_key": "qwen3.6-35b",
+   "pass_rate": 100.0,
+   "n_items": 8,
+   "wall_s": 125.2,
+   "tok_s": 46.2,
+   "kind": "local",
+   "hardware": "Apple M5, 128 GB unified memory",
+   "source": "measured here",
+   "repo": "lmstudio-community/Qwen3.6-35B-A3B-MLX-8bit",
+   "weights_gb": 37.7,
+   "layer_note": "10 of 40 layers hold full attention",
+   "by_context": {
+    "4096": {
+     "needs_gb": 39.0,
+     "smallest_mac_gb": 64
+    },
+    "8192": {
+     "needs_gb": 39.1,
+     "smallest_mac_gb": 64
+    },
+    "32768": {
+     "needs_gb": 39.6,
+     "smallest_mac_gb": 64
+    },
+    "131072": {
+     "needs_gb": 41.6,
+     "smallest_mac_gb": 64
+    }
+   }
+  },
+  {
+   "suite": "agent-easy",
+   "model": "Gemma 4 31B (MLX 4-bit)",
+   "model_key": "gemma-4-31b",
+   "pass_rate": 91.7,
+   "n_items": 12,
+   "wall_s": 92.1,
+   "tok_s": 25.6,
+   "kind": "local",
+   "hardware": "Apple M5, 128 GB unified memory",
+   "source": "measured here",
+   "repo": "divinetribe/gemma-4-31b-it-abliterated-4bit-mlx",
+   "weights_gb": 17.3,
+   "layer_note": "10 of 60 layers hold full attention",
+   "by_context": {
+    "4096": {
+     "needs_gb": 19.1,
+     "smallest_mac_gb": 32
+    },
+    "8192": {
+     "needs_gb": 19.8,
+     "smallest_mac_gb": 32
+    },
+    "32768": {
+     "needs_gb": 23.8,
+     "smallest_mac_gb": 32
+    },
+    "131072": {
+     "needs_gb": 39.9,
+     "smallest_mac_gb": 64
+    }
+   }
+  },
+  {
+   "suite": "agent-hard",
+   "model": "Gemma 4 31B (MLX 4-bit)",
+   "model_key": "gemma-4-31b",
+   "pass_rate": 100.0,
+   "n_items": 8,
+   "wall_s": 347.9,
+   "tok_s": 25.6,
+   "kind": "local",
+   "hardware": "Apple M5, 128 GB unified memory",
+   "source": "measured here",
+   "repo": "divinetribe/gemma-4-31b-it-abliterated-4bit-mlx",
+   "weights_gb": 17.3,
+   "layer_note": "10 of 60 layers hold full attention",
+   "by_context": {
+    "4096": {
+     "needs_gb": 19.1,
+     "smallest_mac_gb": 32
+    },
+    "8192": {
+     "needs_gb": 19.8,
+     "smallest_mac_gb": 32
+    },
+    "32768": {
+     "needs_gb": 23.8,
+     "smallest_mac_gb": 32
+    },
+    "131072": {
+     "needs_gb": 39.9,
+     "smallest_mac_gb": 64
+    }
+   }
+  },
+  {
+   "suite": "agent-easy",
+   "model": "Qwen3.8-27B (MLX 8-bit, dense)",
+   "model_key": "qwen3.8-27b-8bit",
+   "pass_rate": 100.0,
+   "n_items": 12,
+   "wall_s": 350.7,
+   "tok_s": null,
+   "kind": "local",
+   "hardware": "Apple M5, 128 GB unified memory",
+   "source": "measured here",
+   "repo": "lmstudio-community/Qwen3.8-27B-MLX-8bit",
+   "weights_gb": 29.5,
+   "layer_note": "16 of 64 layers hold full attention",
+   "by_context": {
+    "4096": {
+     "needs_gb": 31.0,
+     "smallest_mac_gb": 48
+    },
+    "8192": {
+     "needs_gb": 31.2,
+     "smallest_mac_gb": 48
+    },
+    "32768": {
+     "needs_gb": 32.8,
+     "smallest_mac_gb": 48
+    },
+    "131072": {
+     "needs_gb": 39.3,
+     "smallest_mac_gb": 64
+    }
+   }
+  },
+  {
+   "suite": "agent-hard",
+   "model": "Qwen3.8-27B (MLX 8-bit, dense)",
+   "model_key": "qwen3.8-27b-8bit",
+   "pass_rate": 87.5,
+   "n_items": 8,
+   "wall_s": 1155.9,
+   "tok_s": null,
+   "kind": "local",
+   "hardware": "Apple M5, 128 GB unified memory",
+   "source": "measured here",
+   "repo": "lmstudio-community/Qwen3.8-27B-MLX-8bit",
+   "weights_gb": 29.5,
+   "layer_note": "16 of 64 layers hold full attention",
+   "by_context": {
+    "4096": {
+     "needs_gb": 31.0,
+     "smallest_mac_gb": 48
+    },
+    "8192": {
+     "needs_gb": 31.2,
+     "smallest_mac_gb": 48
+    },
+    "32768": {
+     "needs_gb": 32.8,
+     "smallest_mac_gb": 48
+    },
+    "131072": {
+     "needs_gb": 39.3,
+     "smallest_mac_gb": 64
+    }
+   }
+  },
+  {
+   "suite": "agent-easy",
+   "model": "Qwen3.8-27B (MLX 8-bit, dense) + DFlash 2 drafter",
+   "model_key": "qwen3.8-27b-8bit-dflash",
+   "pass_rate": 100.0,
+   "n_items": 12,
+   "wall_s": 122.0,
+   "tok_s": 28.7,
+   "kind": "local",
+   "hardware": "Apple M5, 128 GB unified memory",
+   "source": "measured here",
+   "repo": "lmstudio-community/Qwen3.8-27B-MLX-8bit",
+   "weights_gb": 29.5,
+   "layer_note": "16 of 64 layers hold full attention",
+   "by_context": {
+    "4096": {
+     "needs_gb": 31.0,
+     "smallest_mac_gb": 48
+    },
+    "8192": {
+     "needs_gb": 31.2,
+     "smallest_mac_gb": 48
+    },
+    "32768": {
+     "needs_gb": 32.8,
+     "smallest_mac_gb": 48
+    },
+    "131072": {
+     "needs_gb": 39.3,
+     "smallest_mac_gb": 64
+    }
+   }
+  },
+  {
+   "suite": "agent-hard",
+   "model": "Qwen3.8-27B (MLX 8-bit, dense) + DFlash 2 drafter",
+   "model_key": "qwen3.8-27b-8bit-dflash",
+   "pass_rate": 87.5,
+   "n_items": 8,
+   "wall_s": 401.4,
+   "tok_s": 28.7,
+   "kind": "local",
+   "hardware": "Apple M5, 128 GB unified memory",
+   "source": "measured here",
+   "repo": "lmstudio-community/Qwen3.8-27B-MLX-8bit",
+   "weights_gb": 29.5,
+   "layer_note": "16 of 64 layers hold full attention",
+   "by_context": {
+    "4096": {
+     "needs_gb": 31.0,
+     "smallest_mac_gb": 48
+    },
+    "8192": {
+     "needs_gb": 31.2,
+     "smallest_mac_gb": 48
+    },
+    "32768": {
+     "needs_gb": 32.8,
+     "smallest_mac_gb": 48
+    },
+    "131072": {
+     "needs_gb": 39.3,
+     "smallest_mac_gb": 64
+    }
+   }
+  },
+  {
+   "suite": "agent-easy",
+   "model": "DeepSeek V4 Flash (2-bit, 0731 imatrix)",
+   "model_key": "deepseek-v4-flash-0731",
+   "pass_rate": 100.0,
+   "n_items": 12,
+   "wall_s": 203.2,
+   "tok_s": 8.4,
+   "kind": "local",
+   "hardware": "Apple M5, 128 GB unified memory",
+   "source": "measured here"
+  },
+  {
+   "suite": "agent-hard",
+   "model": "DeepSeek V4 Flash (2-bit, 0731 imatrix)",
+   "model_key": "deepseek-v4-flash-0731",
+   "pass_rate": 100.0,
+   "n_items": 8,
+   "wall_s": 550.8,
+   "tok_s": 8.4,
+   "kind": "local",
+   "hardware": "Apple M5, 128 GB unified memory",
+   "source": "measured here"
+  },
+  {
+   "suite": "agent-easy",
+   "model": "DeepSeek V4 Flash (2-bit, original) \u00b7 retired 8/10, weights deleted",
+   "model_key": "deepseek-v4-flash-orig",
+   "pass_rate": 100.0,
+   "n_items": 12,
+   "wall_s": 376.1,
+   "tok_s": 8.4,
+   "kind": "local",
+   "hardware": "Apple M5, 128 GB unified memory",
+   "source": "measured here"
+  },
+  {
+   "suite": "agent-hard",
+   "model": "DeepSeek V4 Flash (2-bit, original) \u00b7 retired 8/10, weights deleted",
+   "model_key": "deepseek-v4-flash-orig",
+   "pass_rate": 100.0,
+   "n_items": 8,
+   "wall_s": 842.4,
+   "tok_s": 8.4,
+   "kind": "local",
+   "hardware": "Apple M5, 128 GB unified memory",
+   "source": "measured here"
+  },
+  {
+   "suite": "agent-easy",
+   "model": "Claude Sonnet 5 (cloud reference)",
+   "model_key": "claude-cloud-reference",
+   "pass_rate": 100.0,
+   "n_items": 12,
+   "wall_s": 122.0,
+   "tok_s": null,
+   "kind": "cloud",
+   "hardware": "Apple M5, 128 GB unified memory",
+   "source": "measured here"
+  },
+  {
+   "suite": "agent-hard",
+   "model": "Claude Sonnet 5 (cloud reference)",
+   "model_key": "claude-cloud-reference",
+   "pass_rate": 100.0,
+   "n_items": 8,
+   "wall_s": 131.0,
+   "tok_s": null,
+   "kind": "cloud",
+   "hardware": "Apple M5, 128 GB unified memory",
+   "source": "measured here"
+  },
+  {
+   "suite": "mac-fit",
+   "model": "abenzerps/Spark-X2.5-4B-MLX-8bit",
+   "model_url": "https://huggingface.co/abenzerps/Spark-X2.5-4B-MLX-8bit",
+   "weights_gb": 4.4,
+   "quant_bits": 8,
+   "layers": 36,
+   "kv_heads": 4,
+   "head_dim": 256,
+   "max_ctx": 1048576,
+   "by_context": {
+    "4096": {
+     "needs_gb": 6.2,
+     "smallest_mac_gb": 16
+    },
+    "8192": {
+     "needs_gb": 6.8,
+     "smallest_mac_gb": 16
+    },
+    "32768": {
+     "needs_gb": 10.4,
+     "smallest_mac_gb": 16
+    },
+    "131072": {
+     "needs_gb": 24.9,
+     "smallest_mac_gb": 36
+    }
+   },
+   "page": "mac-fit/abenzerps",
+   "source": "measured here",
+   "hardware": null
+  },
+  {
+   "suite": "mac-fit",
+   "model": "dealignai/MiniMax-M2.7-JANGTQ-CRACK",
+   "model_url": "https://huggingface.co/dealignai/MiniMax-M2.7-JANGTQ-CRACK",
+   "weights_gb": 60.7,
+   "quant_bits": 8,
+   "layers": 62,
+   "kv_heads": 8,
+   "head_dim": 128,
+   "max_ctx": 196608,
+   "by_context": {
+    "4096": {
+     "needs_gb": 62.9,
+     "smallest_mac_gb": 96
+    },
+    "8192": {
+     "needs_gb": 64.0,
+     "smallest_mac_gb": 96
+    },
+    "32768": {
+     "needs_gb": 70.2,
+     "smallest_mac_gb": 96
+    },
+    "131072": {
+     "needs_gb": 95.2,
+     "smallest_mac_gb": 128
+    }
+   },
+   "page": "mac-fit/dealignai",
+   "source": "measured here",
+   "hardware": null
+  },
+  {
+   "suite": "mac-fit",
+   "model": "peculiar-ragdoll/Sharp-MiniCPM5-2B-MLX-oQ6e",
+   "model_url": "https://huggingface.co/peculiar-ragdoll/Sharp-MiniCPM5-2B-MLX-oQ6e",
+   "weights_gb": 2.1,
+   "quant_bits": 6,
+   "layers": 42,
+   "kv_heads": 2,
+   "head_dim": 128,
+   "max_ctx": 131072,
+   "by_context": {
+    "4096": {
+     "needs_gb": 3.5,
+     "smallest_mac_gb": 8
+    },
+    "8192": {
+     "needs_gb": 3.6,
+     "smallest_mac_gb": 8
+    },
+    "32768": {
+     "needs_gb": 4.7,
+     "smallest_mac_gb": 8
+    },
+    "131072": {
+     "needs_gb": 8.9,
+     "smallest_mac_gb": 16
+    }
+   },
+   "page": "mac-fit/peculiar-ragdoll",
+   "source": "measured here",
+   "hardware": null
+  },
+  {
+   "suite": "mac-fit",
+   "model": "Jiunsong/SuperQwen-AgentWorld-35B-A3B-abliterated-mlx-4bit",
+   "model_url": "https://huggingface.co/Jiunsong/SuperQwen-AgentWorld-35B-A3B-abliterated-mlx-4bit",
+   "weights_gb": 19.5,
+   "quant_bits": 4,
+   "layers": 40,
+   "kv_heads": 2,
+   "head_dim": 256,
+   "max_ctx": 262144,
+   "by_context": {
+    "4096": {
+     "needs_gb": 21.0,
+     "smallest_mac_gb": 32
+    },
+    "8192": {
+     "needs_gb": 21.4,
+     "smallest_mac_gb": 32
+    },
+    "32768": {
+     "needs_gb": 23.4,
+     "smallest_mac_gb": 32
+    },
+    "131072": {
+     "needs_gb": 31.4,
+     "smallest_mac_gb": 48
+    }
+   },
+   "page": "mac-fit/Jiunsong",
+   "source": "measured here",
+   "hardware": null
+  },
+  {
+   "suite": "mac-fit",
+   "model": "Youssofal/MiniMax-M2.7-Abliterated-Heretic-MLX-3bit",
+   "model_url": "https://huggingface.co/Youssofal/MiniMax-M2.7-Abliterated-Heretic-MLX-3bit",
+   "weights_gb": 105.3,
+   "quant_bits": 3,
+   "layers": 62,
+   "kv_heads": 8,
+   "head_dim": 128,
+   "max_ctx": 196608,
+   "by_context": {
+    "4096": {
+     "needs_gb": 107.5,
+     "smallest_mac_gb": null
+    },
+    "8192": {
+     "needs_gb": 108.6,
+     "smallest_mac_gb": null
+    },
+    "32768": {
+     "needs_gb": 114.8,
+     "smallest_mac_gb": null
+    },
+    "131072": {
+     "needs_gb": 139.8,
+     "smallest_mac_gb": null
+    }
+   },
+   "page": "mac-fit/Youssofal",
+   "source": "measured here",
+   "hardware": null
+  },
+  {
+   "suite": "mac-fit",
+   "model": "PocketAiHub/LFM2.5-8B-A1B-Abliterated",
+   "model_url": "https://huggingface.co/PocketAiHub/LFM2.5-8B-A1B-Abliterated",
+   "weights_gb": 5.5,
+   "quant_bits": 4,
+   "layers": 24,
+   "kv_heads": 8,
+   "head_dim": 64,
+   "max_ctx": 128000,
+   "by_context": {
+    "4096": {
+     "needs_gb": 6.9,
+     "smallest_mac_gb": 16
+    },
+    "8192": {
+     "needs_gb": 7.1,
+     "smallest_mac_gb": 16
+    },
+    "32768": {
+     "needs_gb": 8.3,
+     "smallest_mac_gb": 16
+    }
+   },
+   "page": "mac-fit/PocketAiHub",
+   "source": "measured here",
+   "hardware": null
+  },
+  {
+   "suite": "mac-fit",
+   "model": "Jundot/DeepSeek-V4-Flash-0731-oQ2e-mtp",
+   "model_url": "https://huggingface.co/Jundot/DeepSeek-V4-Flash-0731-oQ2e-mtp",
+   "weights_gb": 105.2,
+   "quant_bits": 2,
+   "layers": 43,
+   "kv_heads": 1,
+   "head_dim": 512,
+   "max_ctx": 1048576,
+   "by_context": {
+    "4096": {
+     "needs_gb": 106.8,
+     "smallest_mac_gb": null
+    },
+    "8192": {
+     "needs_gb": 107.2,
+     "smallest_mac_gb": null
+    },
+    "32768": {
+     "needs_gb": 109.3,
+     "smallest_mac_gb": null
+    },
+    "131072": {
+     "needs_gb": 118.0,
+     "smallest_mac_gb": null
+    }
+   },
+   "page": "mac-fit/Jundot",
+   "source": "measured here",
+   "hardware": null
+  },
+  {
+   "suite": "mac-fit",
+   "model": "ddalcu/ACE-Step-1.5-XL-Turbo-MLX-Serve-8bit",
+   "model_url": "https://huggingface.co/ddalcu/ACE-Step-1.5-XL-Turbo-MLX-Serve-8bit",
+   "weights_gb": 5.8,
+   "quant_bits": null,
+   "layers": 32,
+   "kv_heads": 8,
+   "head_dim": 128,
+   "max_ctx": null,
+   "by_context": {
+    "4096": {
+     "needs_gb": 7.6,
+     "smallest_mac_gb": 16
+    },
+    "8192": {
+     "needs_gb": 8.1,
+     "smallest_mac_gb": 16
+    },
+    "32768": {
+     "needs_gb": 11.3,
+     "smallest_mac_gb": 16
+    },
+    "131072": {
+     "needs_gb": 24.2,
+     "smallest_mac_gb": 36
+    }
+   },
+   "page": "mac-fit/ddalcu",
+   "source": "measured here",
+   "hardware": null
+  },
+  {
+   "suite": "mac-fit",
+   "model": "deadbydawn101/RavenX-Trade-8B-MAP-128k-mlx-4bit",
+   "model_url": "https://huggingface.co/deadbydawn101/RavenX-Trade-8B-MAP-128k-mlx-4bit",
+   "weights_gb": 16.4,
+   "quant_bits": null,
+   "layers": 36,
+   "kv_heads": 8,
+   "head_dim": 128,
+   "max_ctx": 131072,
+   "by_context": {
+    "4096": {
+     "needs_gb": 18.2,
+     "smallest_mac_gb": 32
+    },
+    "8192": {
+     "needs_gb": 18.8,
+     "smallest_mac_gb": 32
+    },
+    "32768": {
+     "needs_gb": 22.4,
+     "smallest_mac_gb": 32
+    },
+    "131072": {
+     "needs_gb": 36.9,
+     "smallest_mac_gb": 64
+    }
+   },
+   "page": "mac-fit/deadbydawn101",
+   "source": "measured here",
+   "hardware": null
+  },
+  {
+   "suite": "mac-fit",
+   "model": "manjunathshiva/gpt-oss-20b-tq3",
+   "model_url": "https://huggingface.co/manjunathshiva/gpt-oss-20b-tq3",
+   "weights_gb": 9.9,
+   "quant_bits": 3,
+   "layers": 24,
+   "kv_heads": 8,
+   "head_dim": 64,
+   "max_ctx": 131072,
+   "by_context": {
+    "4096": {
+     "needs_gb": 11.3,
+     "smallest_mac_gb": 16
+    },
+    "8192": {
+     "needs_gb": 11.5,
+     "smallest_mac_gb": 16
+    },
+    "32768": {
+     "needs_gb": 12.8,
+     "smallest_mac_gb": 18
+    },
+    "131072": {
+     "needs_gb": 17.6,
+     "smallest_mac_gb": 24
+    }
+   },
+   "page": "mac-fit/manjunathshiva",
+   "source": "measured here",
+   "hardware": null
+  }
+ ]
+}

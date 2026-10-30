@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>What should I run on my Mac? · Agent-12</title>
+<meta name="description" content="Pick your Mac and what you want to do. Get one model
+name, with the memory and the measured result behind it.">
+<style>
+:root{--bg:#0c0d10;--card:#15171c;--line:#23262e;--ink:#e8eaee;--dim:#9aa1ad;
+--good:#4ade80;--warn:#fbbf24;--accent:#7dd3fc;--dead:#6b7280}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif}
+.wrap{max-width:720px;margin:0 auto;padding:44px 22px 80px}
+h1{font-size:28px;margin:0 0 8px;letter-spacing:-.3px}
+.sub{color:var(--dim);margin:0 0 26px}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+.card{background:var(--card);border:1px solid var(--line);border-radius:13px;
+padding:18px 20px;margin:0 0 14px}
+label{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.08em;
+color:var(--dim);margin:0 0 6px;font-weight:600}
+select{width:100%;background:#1b1e25;color:var(--ink);border:1px solid var(--line);
+border-radius:9px;padding:11px 12px;font-size:16px;appearance:none}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:560px){.two{grid-template-columns:1fr}}
+.answer{font-size:22px;font-weight:650;letter-spacing:-.3px;margin:0 0 4px;
+line-height:1.3;word-break:break-word}
+.why{color:var(--dim);font-size:14px;margin:10px 0 0}
+.row{display:flex;justify-content:space-between;gap:12px;padding:7px 0;
+border-bottom:1px solid var(--line);font-size:14px}
+.row:last-child{border-bottom:0}
+.row span:last-child{color:var(--dim);text-align:right}
+.pill{display:inline-block;border:1px solid var(--line);border-radius:999px;
+padding:2px 10px;font-size:12px;color:var(--dim);margin:0 6px 6px 0}
+.good{color:var(--good)}.warn{color:var(--warn)}.dead{color:var(--dead)}
+.alt{font-size:13.5px;color:var(--dim);margin-top:4px}
+.foot{margin-top:40px;padding-top:18px;border-top:1px solid var(--line);
+color:var(--dim);font-size:13px}
+.tag{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;padding:1px 6px;
+border-radius:4px;background:#14341f;color:var(--good);margin-left:8px;vertical-align:2px}
+</style></head><body><div class="wrap">
+
+<h1>What should I run?</h1>
+<p class="sub">Your machine, and the one thing you want it to do. The answer is a model
+name, the memory it needs, and the result it is based on. If we have not measured it, this
+page says so instead of guessing.</p>
+
+<div class="card">
+  <div class="two">
+    <div>
+      <label for="mac">Your Mac</label>
+      <select id="mac"></select>
+    </div>
+    <div>
+      <label for="job">What you want to do</label>
+      <select id="job"></select>
+    </div>
+  </div>
+  <div class="two" style="margin-top:12px">
+    <div>
+      <label for="ctx">Context you need</label>
+      <select id="ctx">
+        <option value="4096">4k, short answers</option>
+        <option value="8192" selected>8k, normal use</option>
+        <option value="32768">32k, long documents</option>
+        <option value="131072">128k, a whole codebase</option>
+      </select>
+    </div>
+  </div>
+</div>
+
+<div class="card" id="out"><span class="dead">loading the catalog…</span></div>
+
+<div class="foot" id="foot">
+<a href="../">leaderboard</a> · <a href="../all/">every test we log</a> ·
+<a href="../mac-fit/">memory per model</a> ·
+<a href="../submit/">add a result</a><br><br>
+<span id="built"></span>
+</div>
+
+<script>
+const JOBS = [
+  {id:'agent-hard', label:'Write and edit code, agent style', metric:'pass_rate',
+   better:'high', unit:'% of 12 tasks passed'},
+  {id:'agent-easy', label:'Simple file edits and scripting', metric:'pass_rate',
+   better:'high', unit:'% of 12 tasks passed'},
+  {id:'vision-describe', label:'Describe a photo out loud', metric:'accuracy', better:'high'},
+  {id:'vision-read-text', label:'Read the text in a picture', metric:'accuracy', better:'high'},
+  {id:'vision-detect', label:'Find an object in a frame', metric:'map50', better:'high'},
+  {id:'asr', label:'Turn speech into text', metric:'wer', better:'low'},
+  {id:'long-context', label:'Find a fact in a huge document', metric:'recall_at_k', better:'high'},
+  {id:'tool-calls', label:'Call tools without breaking', metric:'pass_rate', better:'high'},
+];
+const MACS = [8,16,18,24,32,36,48,64,96,128];
+let CAT = null;
+
+function el(id){ return document.getElementById(id); }
+
+function fillSelects(){
+  el('mac').innerHTML = MACS.map(m =>
+    `<option value="${m}"${m===16?' selected':''}>${m} GB unified memory</option>`).join('');
+  el('job').innerHTML = JOBS.map(j =>
+    `<option value="${j.id}">${j.label}</option>`).join('');
+}
+
+// A scored row usually carries its own memory block. If it does not, try to find the
+// same model among the mac-fit rows. Cloud rows have neither, and say so.
+function memFor(row, ctx){
+  let src = row.by_context ? row
+          : CAT.rows.find(x => x.suite === 'mac-fit' &&
+              (x.model === row.model || x.model === row.repo));
+  if (!src || !src.by_context) return null;
+  const c = src.by_context[String(ctx)] || src.by_context['8192'];
+  if (!c) return null;
+  return {...c, page: src.page || null, weights: src.weights_gb,
+          layer_note: src.layer_note || null};
+}
+
+function render(){
+  const ram = +el('mac').value, jobId = el('job').value, ctx = +el('ctx').value;
+  const job = JOBS.find(j => j.id === jobId);
+  const suite = CAT.suites.find(s => s.id === jobId);
+  let rows = CAT.rows.filter(r => r.suite === jobId && r[job.metric] != null);
+
+  if (!rows.length){
+    el('out').innerHTML =
+      `<div class="answer">Nobody has measured this yet<span class="tag" style="background:#2d2410;color:var(--warn)">honest</span></div>
+       <p class="why">${suite ? suite.measures : ''}</p>
+       <p class="why">That is exactly the gap this site exists to close. If you have a Mac
+       and an afternoon, <a href="../submit/">run it and submit the numbers</a> and you are
+       the first row on the board.</p>`;
+    return;
+  }
+
+  rows = rows.slice().sort((a,b) =>
+    job.better === 'high' ? b[job.metric]-a[job.metric] : a[job.metric]-b[job.metric]);
+
+  // Keep only what the chosen machine can actually hold, when we know the memory.
+  const scored = rows.map(r => ({...r, mem: memFor(r, ctx)}));
+  const fits = scored.filter(r => !r.mem || r.mem.smallest_mac_gb && r.mem.smallest_mac_gb <= ram);
+  const best = fits[0] || null;
+
+  if (!best){
+    const smallest = scored.filter(r => r.mem).sort((a,b) =>
+      a.mem.needs_gb - b.mem.needs_gb)[0];
+    el('out').innerHTML =
+      `<div class="answer">Nothing we have measured fits ${ram} GB at ${ctx/1024}k</div>
+       <p class="why">The lightest one on the board needs
+       ${smallest ? smallest.mem.needs_gb + ' GB' : 'more than that'}. Dropping to a
+       shorter context is the usual fix, or a smaller quant of the same model.</p>`;
+    return;
+  }
+
+  const m = best.mem;
+  const score = `${best[job.metric]}${job.unit ? ' ' + job.unit : ''}`;
+  const alts = fits.slice(1,4).map(r =>
+    `${r.model} (${r[job.metric]}${job.better==='high'?'':''})`).join(' · ');
+
+  el('out').innerHTML = `
+    <div class="answer">${best.model}</div>
+    <div>
+      ${best.tok_s ? `<span class="pill">${best.tok_s} tok/s</span>` : ''}
+      ${best.hardware ? `<span class="pill">measured on ${best.hardware}</span>` : ''}
+      <span class="pill">${best.source}</span>
+    </div>
+    <div style="margin-top:12px">
+      <div class="row"><span>Scored</span><span>${score}</span></div>
+      ${m ? `<div class="row"><span>Needs at ${ctx/1024}k context</span>
+        <span>${m.needs_gb} GB, fits a ${m.smallest_mac_gb} GB Mac</span></div>
+        <div class="row"><span>Headroom on your ${ram} GB</span>
+        <span class="${(ram*0.75 - m.needs_gb) >= 2 ? 'good':'warn'}">
+        ${(ram*0.75 - m.needs_gb).toFixed(1)} GB left</span></div>` :
+        `<div class="row"><span>Memory</span><span class="dead">not worked out for this
+        model yet</span></div>`}
+      ${m && m.layer_note ? `<div class="row"><span>KV cache counts</span>
+        <span>${m.layer_note}</span></div>` : ''}
+      ${m && m.page ? `<div class="row"><span>Full memory table</span>
+        <span><a href="../${m.page}">this model, Mac by Mac</a></span></div>` : ''}
+    </div>
+    ${alts ? `<p class="alt">Next best that also fits: ${alts}</p>` : ''}
+    <p class="why">${suite ? suite.measures : ''}</p>`;
+}
+
+fetch('../data/catalog.json').then(r => r.json()).then(c => {
+  CAT = c;
+  fillSelects();
+  el('built').textContent = 'Catalog built ' + c.built_utc +
+    '. Assumes MLX wires ' + (c.assumptions.usable_fraction_of_unified_memory*100) +
+    '% of unified memory and ' + c.assumptions.runtime_overhead_gb + ' GB of runtime.';
+  ['mac','job','ctx'].forEach(id => el(id).addEventListener('change', render));
+  render();
+}).catch(e => {
+  el('out').innerHTML = '<span class="warn">Could not load the catalog: ' + e + '</span>';
+});
+</script>
+</div></body></html>
