@@ -201,6 +201,9 @@ TEMPLATE = """<!doctype html>
     · <a href="https://github.com/nicedreamzapp/agent12/blob/main/CONTAMINATION.md">contamination policy</a>.
     Cloud reference times include network/API round-trips — that is the honest
     end-to-end experience. Updated {{UPDATED}}.</p>
+    <p style="margin-top:1rem;">Wondering whether a model even fits your machine before you
+    care how fast it is? <a href="mac-fit/">Will it fit my Mac</a> works the unified memory
+    out per model from its own file list and config, Mac by Mac from 8 GB to 128 GB.</p>
     <p style="margin-top:1rem;">Want to actually run the winner? Every row here plugs straight into
     <a href="https://github.com/nicedreamzapp/claude-code-local">Claude Code Local</a>
     — Claude Code, 100% on-device on Apple Silicon, no cloud. Ready-made MLX builds on

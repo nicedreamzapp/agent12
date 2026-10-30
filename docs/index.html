@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Agent-12 â€” the local agent leaderboard</title>
+<title>Agent-12 — the local agent leaderboard</title>
 <style>
   :root {
     --bg: #f7f6f3; --panel: #ffffff; --ink: #1a1e24; --sub: #5b6472;
@@ -44,15 +44,15 @@
 </head>
 <body>
 <main>
-  <h1>Agent-12 <span style="color:var(--sub); font-weight:400;">â€” the local agent leaderboard</span></h1>
+  <h1>Agent-12 <span style="color:var(--sub); font-weight:400;">— the local agent leaderboard</span></h1>
   <p class="tag">Which model can actually be your agent on your own hardware?
-  Measured by doing real agent tasks in a sandboxed working directory â€”
+  Measured by doing real agent tasks in a sandboxed working directory —
   judged by the filesystem, never by the model's prose. Temperature 0, fixed
   caps, fresh sandbox per task, one variable moved per comparison.</p>
 
   <h2>Local models</h2>
   <p class="tag">Measured in Agent-12's own reference harness (Anvil, a ~550-token native
-  terminal engine with per-model tool-call dialects) â€” <b>not inside Claude Code</b>. The same
+  terminal engine with per-model tool-call dialects) — <b>not inside Claude Code</b>. The same
   model inside Claude Code as installed scores and times differently, because that harness
   sends far more tool tokens per turn; the harness is held fixed here so models can be
   compared with each other. See <a href="https://github.com/nicedreamzapp/agent12/blob/main/METHODOLOGY.md">METHODOLOGY</a>
@@ -70,7 +70,7 @@
 <tr><td class="model">Qwen3-Coder-30B-A3B (MLX 8-bit)<span class="params">30B MoE, 3B active Â· native tool calls</span></td><td class="score gold">12/12</td><td class="secs">42.6s</td><td class="score ">7/8</td><td class="secs">391.5s</td><td class="secs">84.3</td><td class="hw">Apple M5, 128 GB unified memory</td></tr>
 <tr><td class="model">Qwen3.6-35B-A3B (MLX 8-bit)<span class="params">35B MoE, 3B active Â· native tool calls</span></td><td class="score gold">12/12</td><td class="secs">64.2s</td><td class="score gold">8/8</td><td class="secs">125.2s</td><td class="secs">46.2</td><td class="hw">Apple M5, 128 GB unified memory</td></tr>
 <tr><td class="model">Gemma 4 31B (MLX 4-bit)<span class="params">31B dense Â· prompted-XML dialect</span></td><td class="score ">11/12</td><td class="secs">92.1s</td><td class="score gold">8/8</td><td class="secs">347.9s</td><td class="secs">25.6</td><td class="hw">Apple M5, 128 GB unified memory</td></tr>
-<tr><td class="model">Qwen3.8-27B (MLX 8-bit, dense)<span class="params">27B dense Â· native tool calls Â· 8/8 hard at an 8000-token budget, 16.9x slower than Qwen3.6 (writeup)</span></td><td class="score gold">12/12</td><td class="secs">350.7s</td><td class="score ">7/8</td><td class="secs">1155.9s</td><td class="secs">â€”</td><td class="hw">Apple M5, 128 GB unified memory</td></tr>
+<tr><td class="model">Qwen3.8-27B (MLX 8-bit, dense)<span class="params">27B dense Â· native tool calls Â· 8/8 hard at an 8000-token budget, 16.9x slower than Qwen3.6 (writeup)</span></td><td class="score gold">12/12</td><td class="secs">350.7s</td><td class="score ">7/8</td><td class="secs">1155.9s</td><td class="secs">—</td><td class="hw">Apple M5, 128 GB unified memory</td></tr>
 <tr><td class="model">Qwen3.8-27B (MLX 8-bit, dense) + DFlash 2 drafter<span class="params">27B dense Â· native tool calls Â· incoai DFlash2 drafter, ~3x faster than without it, still ~3x slower than Qwen3.6; tok/s here includes re-prefill every turn (writeup, 2026-09-19)</span></td><td class="score gold">12/12</td><td class="secs">122.0s</td><td class="score ">7/8</td><td class="secs">401.4s</td><td class="secs">28.7</td><td class="hw">Apple M5, 128 GB unified memory</td></tr>
 <tr><td class="model">DeepSeek V4 Flash (2-bit, 0731 imatrix)<span class="params">284B MoE Â· ds4.c engine</span></td><td class="score gold">12/12</td><td class="secs">203.2s</td><td class="score gold">8/8</td><td class="secs">550.8s</td><td class="secs">8.4</td><td class="hw">Apple M5, 128 GB unified memory</td></tr>
 <tr><td class="model">DeepSeek V4 Flash (2-bit, original) Â· retired 8/10, weights deleted<span class="params">284B MoE Â· ds4.c engine</span></td><td class="score gold">12/12</td><td class="secs">376.1s</td><td class="score gold">8/8</td><td class="secs">842.4s</td><td class="secs">8.4</td><td class="hw">Apple M5, 128 GB unified memory</td></tr>
@@ -78,7 +78,7 @@
   </table>
   </div>
 
-  <h2>Cloud reference (not competing â€” context)</h2>
+  <h2>Cloud reference (not competing — context)</h2>
   <div class="tablewrap">
   <table>
     <thead><tr>
@@ -89,12 +89,12 @@
       <th>Where it runs</th>
     </tr></thead>
     <tbody>
-<tr><td class="model">Claude Sonnet 5 (cloud reference)<span class="params">same engine, same tasks, remote model</span></td><td class="score gold">12/12</td><td class="secs">122.0s</td><td class="score gold">8/8</td><td class="secs">131.0s</td><td class="secs">â€”</td><td class="hw">Anthropic API</td></tr>
+<tr><td class="model">Claude Sonnet 5 (cloud reference)<span class="params">same engine, same tasks, remote model</span></td><td class="score gold">12/12</td><td class="secs">122.0s</td><td class="score gold">8/8</td><td class="secs">131.0s</td><td class="secs">—</td><td class="hw">Anthropic API</td></tr>
     </tbody>
   </table>
   </div>
 
-  <h2>Vendor-reported (NOT Agent-12 numbers â€” credited, not competing)</h2>
+  <h2>Vendor-reported (NOT Agent-12 numbers — credited, not competing)</h2>
   <p style="margin:0 0 .5rem 0;">Models we have not run through Agent-12 yet. These scores are the vendor's own published numbers on the vendor's own benchmarks, linked to the source. They are not comparable to the tables above and move into the local table the day they get a real run.</p>
   <div class="tablewrap">
   <table>
@@ -116,19 +116,22 @@
     <ul class="rules">
       <li>Every judge is smoke-tested on a known-good AND a known-bad
           reference solution before it judges anything real.</li>
-      <li>Tasks that ship a test file pin its hash â€” editing the test scores zero.</li>
+      <li>Tasks that ship a test file pin its hash — editing the test scores zero.</li>
       <li>All rows run the same tasks, same caps, same judges, on the stated hardware.</li>
       <li>Cloud rows are labeled reference points, not contestants.</li>
     </ul>
     <p style="margin-top:1rem;">Tasks, judges, runner, and the validation gate are open:
     <a href="https://github.com/nicedreamzapp/agent12">github.com/nicedreamzapp/agent12</a>
-    Â· <a href="https://github.com/nicedreamzapp/agent12/blob/main/METHODOLOGY.md">methodology</a>
-    Â· <a href="https://github.com/nicedreamzapp/agent12/blob/main/CONTAMINATION.md">contamination policy</a>.
-    Cloud reference times include network/API round-trips â€” that is the honest
+    · <a href="https://github.com/nicedreamzapp/agent12/blob/main/METHODOLOGY.md">methodology</a>
+    · <a href="https://github.com/nicedreamzapp/agent12/blob/main/CONTAMINATION.md">contamination policy</a>.
+    Cloud reference times include network/API round-trips — that is the honest
     end-to-end experience. Updated 2026-09-19.</p>
+    <p style="margin-top:1rem;">Wondering whether a model even fits your machine before you
+    care how fast it is? <a href="mac-fit/">Will it fit my Mac</a> works the unified memory
+    out per model from its own file list and config, Mac by Mac from 8 GB to 128 GB.</p>
     <p style="margin-top:1rem;">Want to actually run the winner? Every row here plugs straight into
     <a href="https://github.com/nicedreamzapp/claude-code-local">Claude Code Local</a>
-    â€” Claude Code, 100% on-device on Apple Silicon, no cloud. Ready-made MLX builds on
+    — Claude Code, 100% on-device on Apple Silicon, no cloud. Ready-made MLX builds on
     <a href="https://huggingface.co/divinetribe">Hugging Face</a>.</p>
   </div>
 </main>
