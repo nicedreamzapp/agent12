@@ -119,7 +119,12 @@ function render(){
   const ram = +el('mac').value, jobId = el('job').value, ctx = +el('ctx').value;
   const job = JOBS.find(j => j.id === jobId);
   const suite = CAT.suites.find(s => s.id === jobId);
-  let rows = CAT.rows.filter(r => r.suite === jobId && r[job.metric] != null);
+  // Cloud rows are reference points on the leaderboard, not an answer to "what should I
+  // run on my Mac", so they never win here.
+  let rows = CAT.rows.filter(r => r.suite === jobId && r[job.metric] != null &&
+                                  r.kind !== 'cloud');
+  const cloud = CAT.rows.filter(r => r.suite === jobId && r.kind === 'cloud' &&
+                                     r[job.metric] != null);
 
   if (!rows.length){
     el('out').innerHTML =
@@ -187,7 +192,10 @@ function render(){
     ${alts ? `<p class="alt">Next best that also fits: ${alts}</p>` : ''}
     ${unknown.length ? `<p class="alt">Scored but skipped, because the memory is not
       worked out yet: ${unknown.map(r => r.model).join(', ')}.</p>` : ''}
-    <p class="why">${suite ? suite.measures : ''}</p>`;
+    <p class="why">${suite ? suite.measures : ''}</p>
+    ${cloud.length ? `<p class="alt">For reference, the cloud scored
+      ${cloud[0][job.metric]}${job.unit ? ' ' + job.unit : ''}
+      (${cloud[0].model}), which is not something you run on your own machine.</p>` : ''}`;
 }
 
 fetch('../data/catalog.json').then(r => r.json()).then(c => {

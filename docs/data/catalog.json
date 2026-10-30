@@ -1,5 +1,5 @@
 {
- "built_utc": "2026-10-30T11:19:29Z",
+ "built_utc": "2026-10-30T11:22:50Z",
  "hardware_default": "Apple M5, 128 GB unified memory",
  "assumptions": {
   "usable_fraction_of_unified_memory": 0.75,
@@ -178,6 +178,7 @@
   {
    "suite": "agent-easy",
    "model": "Qwen3-Coder-30B-A3B (MLX 8-bit)",
+   "model_note": null,
    "model_key": "qwen3-coder-30b",
    "pass_rate": 100.0,
    "n_items": 12,
@@ -211,6 +212,7 @@
   {
    "suite": "agent-hard",
    "model": "Qwen3-Coder-30B-A3B (MLX 8-bit)",
+   "model_note": null,
    "model_key": "qwen3-coder-30b",
    "pass_rate": 87.5,
    "n_items": 8,
@@ -244,6 +246,7 @@
   {
    "suite": "agent-easy",
    "model": "Qwen3.6-35B-A3B (MLX 8-bit)",
+   "model_note": null,
    "model_key": "qwen3.6-35b",
    "pass_rate": 100.0,
    "n_items": 12,
@@ -277,6 +280,7 @@
   {
    "suite": "agent-hard",
    "model": "Qwen3.6-35B-A3B (MLX 8-bit)",
+   "model_note": null,
    "model_key": "qwen3.6-35b",
    "pass_rate": 100.0,
    "n_items": 8,
@@ -310,6 +314,7 @@
   {
    "suite": "agent-easy",
    "model": "Gemma 4 31B (MLX 4-bit)",
+   "model_note": null,
    "model_key": "gemma-4-31b",
    "pass_rate": 91.7,
    "n_items": 12,
@@ -343,6 +348,7 @@
   {
    "suite": "agent-hard",
    "model": "Gemma 4 31B (MLX 4-bit)",
+   "model_note": null,
    "model_key": "gemma-4-31b",
    "pass_rate": 100.0,
    "n_items": 8,
@@ -376,6 +382,7 @@
   {
    "suite": "agent-easy",
    "model": "Qwen3.8-27B (MLX 8-bit, dense)",
+   "model_note": null,
    "model_key": "qwen3.8-27b-8bit",
    "pass_rate": 100.0,
    "n_items": 12,
@@ -409,6 +416,7 @@
   {
    "suite": "agent-hard",
    "model": "Qwen3.8-27B (MLX 8-bit, dense)",
+   "model_note": null,
    "model_key": "qwen3.8-27b-8bit",
    "pass_rate": 87.5,
    "n_items": 8,
@@ -442,6 +450,7 @@
   {
    "suite": "agent-easy",
    "model": "Qwen3.8-27B (MLX 8-bit, dense) + DFlash 2 drafter",
+   "model_note": null,
    "model_key": "qwen3.8-27b-8bit-dflash",
    "pass_rate": 100.0,
    "n_items": 12,
@@ -475,6 +484,7 @@
   {
    "suite": "agent-hard",
    "model": "Qwen3.8-27B (MLX 8-bit, dense) + DFlash 2 drafter",
+   "model_note": null,
    "model_key": "qwen3.8-27b-8bit-dflash",
    "pass_rate": 87.5,
    "n_items": 8,
@@ -508,6 +518,7 @@
   {
    "suite": "agent-easy",
    "model": "DeepSeek V4 Flash (2-bit, 0731 imatrix)",
+   "model_note": null,
    "model_key": "deepseek-v4-flash-0731",
    "pass_rate": 100.0,
    "n_items": 12,
@@ -520,6 +531,7 @@
   {
    "suite": "agent-hard",
    "model": "DeepSeek V4 Flash (2-bit, 0731 imatrix)",
+   "model_note": null,
    "model_key": "deepseek-v4-flash-0731",
    "pass_rate": 100.0,
    "n_items": 8,
@@ -531,7 +543,8 @@
   },
   {
    "suite": "agent-easy",
-   "model": "DeepSeek V4 Flash (2-bit, original) \u00b7 retired 8/10, weights deleted",
+   "model": "DeepSeek V4 Flash (2-bit, original)",
+   "model_note": "retired 8/10, weights deleted",
    "model_key": "deepseek-v4-flash-orig",
    "pass_rate": 100.0,
    "n_items": 12,
@@ -543,7 +556,8 @@
   },
   {
    "suite": "agent-hard",
-   "model": "DeepSeek V4 Flash (2-bit, original) \u00b7 retired 8/10, weights deleted",
+   "model": "DeepSeek V4 Flash (2-bit, original)",
+   "model_note": "retired 8/10, weights deleted",
    "model_key": "deepseek-v4-flash-orig",
    "pass_rate": 100.0,
    "n_items": 8,
@@ -556,6 +570,7 @@
   {
    "suite": "agent-easy",
    "model": "Claude Sonnet 5 (cloud reference)",
+   "model_note": null,
    "model_key": "claude-cloud-reference",
    "pass_rate": 100.0,
    "n_items": 12,
@@ -568,6 +583,7 @@
   {
    "suite": "agent-hard",
    "model": "Claude Sonnet 5 (cloud reference)",
+   "model_note": null,
    "model_key": "claude-cloud-reference",
    "pass_rate": 100.0,
    "n_items": 8,

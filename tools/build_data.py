@@ -105,9 +105,13 @@ def agent_rows(meta):
                 continue
             passed = sum(1 for t in tasks.values() if t.get("pass"))
             mem = mem_all.get(key)
+            # Some displays carry a note after a middot ("... · retired, weights deleted").
+            # Keep the model name clean and hand the note over separately.
+            name, _, note = r["display"].partition(" · ")
             rows.append({
                 "suite": suite,
-                "model": r["display"],
+                "model": name.strip(),
+                "model_note": note.strip() or None,
                 "model_key": key,
                 "pass_rate": round(100 * passed / len(tasks), 1),
                 "n_items": len(tasks),
