@@ -136,7 +136,11 @@ function render(){
 
   // Keep only what the chosen machine can actually hold, when we know the memory.
   const scored = rows.map(r => ({...r, mem: memFor(r, ctx)}));
-  const fits = scored.filter(r => !r.mem || r.mem.smallest_mac_gb && r.mem.smallest_mac_gb <= ram);
+  // A row whose memory we have not worked out must never be recommended as fitting.
+  // Treating unknown as "fits" told a 16 GB Mac to run a 100 GB model.
+  const fits = scored.filter(r => r.mem && r.mem.smallest_mac_gb &&
+                                  r.mem.smallest_mac_gb <= ram);
+  const unknown = scored.filter(r => !r.mem);
   const best = fits[0] || null;
 
   if (!best){
@@ -146,7 +150,11 @@ function render(){
       `<div class="answer">Nothing we have measured fits ${ram} GB at ${ctx/1024}k</div>
        <p class="why">The lightest one on the board needs
        ${smallest ? smallest.mem.needs_gb + ' GB' : 'more than that'}. Dropping to a
-       shorter context is the usual fix, or a smaller quant of the same model.</p>`;
+       shorter context is the usual fix, or a smaller quant of the same model.</p>
+       ${unknown.length ? `<p class="why">${unknown.length} model${unknown.length>1?'s':''}
+       scored on this test but ${unknown.length>1?'have':'has'} no memory worked out yet, so
+       ${unknown.length>1?'they are':'it is'} left out rather than guessed at:
+       ${unknown.map(r => r.model).join(', ')}.</p>` : ''}`;
     return;
   }
 
@@ -177,6 +185,8 @@ function render(){
         <span><a href="../${m.page}">this model, Mac by Mac</a></span></div>` : ''}
     </div>
     ${alts ? `<p class="alt">Next best that also fits: ${alts}</p>` : ''}
+    ${unknown.length ? `<p class="alt">Scored but skipped, because the memory is not
+      worked out yet: ${unknown.map(r => r.model).join(', ')}.</p>` : ''}
     <p class="why">${suite ? suite.measures : ''}</p>`;
 }
 
