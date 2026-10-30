@@ -76,6 +76,22 @@ def check_hashes(seen):
     return seen
 
 
+def model_identity(arg):
+    """What to call the model, and whether a Hugging Face link is honest.
+
+    Passing a local directory used to produce "https://huggingface.co//Users/matt/..."
+    which is a link to nothing. A row is only linked when the argument is a repo id,
+    or a hub cache folder whose name still carries the org (models--org--name).
+    """
+    if os.path.isdir(arg):
+        base = os.path.basename(os.path.normpath(arg))
+        if base.startswith("models--"):
+            repo = "/".join(base[len("models--"):].split("--"))
+            return repo, f"https://huggingface.co/{repo}"
+        return base + " (local build)", None
+    return arg, f"https://huggingface.co/{arg}"
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", required=True, help="MLX vision model repo id")
@@ -107,6 +123,10 @@ def main():
     except ImportError:
         raise SystemExit("mlx-vlm is not installed. On Apple Silicon: pip install mlx-vlm")
 
+    model_name, model_url = model_identity(args.model)
+    if model_url is None:
+        print(f"  note: {model_name} has no public repo to link, the row will say so")
+
     t0 = time.time()
     model, processor = load(args.model)
     load_s = round(time.time() - t0, 1)
@@ -133,8 +153,8 @@ def main():
     acc = round(100 * correct / len(items), 1)
     out = {
         "suite": "vision-read-text",
-        "model": args.model,
-        "model_url": f"https://huggingface.co/{args.model}",
+        "model": model_name,
+        "model_url": model_url,
         "hardware": args.hardware,
         "metrics": {"accuracy": acc,
                     "first_token_s": round(first_token_total / len(items), 2)},
@@ -145,7 +165,7 @@ def main():
                  f"manifest v{man['version']}, exact-match scoring",
         "items": results,
     }
-    slug = args.model.split("/")[-1].lower()
+    slug = model_name.split("/")[-1].replace(" (local build)", "-local").lower()
     dest = os.path.join(ROOT, "submissions",
                         f"vision-read-text--{slug}--{(args.who or 'unnamed').lower()}.json")
     with io.open(dest, "w", encoding="utf-8") as f:
