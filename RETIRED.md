@@ -35,3 +35,4 @@ winner, the loser is retired the same day with the reason.
 | 2026-10-25 | VizWiz-Caps dataset | dataset | 8 GB | none | For the vision-narrator retrain experiment, dropped 2026-10-24 |
 | 2026-10-25 | Song Forge parked RVC voice engines | voice | 2 GB | none | Parked 2026-08-06 (AGPL license risk), never wired in |
 | 2026-11-01 | openai/clip-vit-base-patch32 | model | 1 GB | none | no tool loads it; last used 2026-09-14 (Mac) |
+| 2026-11-20 | Qwen/Qwen3.8-27B | vision LLM | 56 GB | DaisyRose-27B | Lost the model challenge 88.2 vs 94.9 (run 2026-11-20-RadixArk_DaisyRose-27B-r2) |

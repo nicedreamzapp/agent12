@@ -1,0 +1,31 @@
+{
+  "date": "2026-11-20T11:49",
+  "newcomer": "RadixArk/DaisyRose-27B",
+  "rival": "Qwen/Qwen3.8-27B",
+  "workflow_slot": "donedynamics/Qwen3.8-27B-heretic-VL-MLX-bf16",
+  "precision": "bf16",
+  "winner": "newcomer",
+  "why": "won by 6.7 points with no category collapse",
+  "margin": 6.674999999999997,
+  "scores": {
+    "newcomer": {
+      "overall": 94.875,
+      "categories": {
+        "tools": 88.75,
+        "coding": 96.875,
+        "vision": 100.0,
+        "longctx": 100.0
+      }
+    },
+    "rival": {
+      "overall": 88.2,
+      "categories": {
+        "tools": 70.5,
+        "coding": 100.0,
+        "vision": 100.0,
+        "longctx": 100.0
+      }
+    }
+  },
+  "suite": "suite_hard"
+}
