@@ -15,8 +15,11 @@ Live: https://nicedreamzapp.github.io/mac-fit/
   printed on every page so you can check it.
 - **Runtime overhead** is a flat 1.2 GB for Python, MLX, the tokenizer and activations,
   which is what I see on my own runs.
-- **Which Macs fit** assumes MLX can wire about 75% of unified memory, leaving the rest to
-  macOS and your apps.
+- **Which Macs fit** is checked twice: at the default GPU wired limit (about 75% of unified
+  memory), and with the limit raised by `sudo sysctl iogpu.wired_limit_mb=<N>` to leave 8 GB
+  for macOS. The default is a setting, not a hardware ceiling.
+- **MTP heads** (multi-token prediction, for speculative decoding) are measured from the
+  safetensors headers and shown separately, since a runtime can skip them or keep them off the GPU.
 
 Parameter counts are deliberately left off. Hugging Face reports safetensors element
 counts, and MLX packs quantized weights into `uint32`, so that figure reads several times

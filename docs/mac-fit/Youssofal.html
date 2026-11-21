@@ -66,13 +66,13 @@ nothing to click.</p>
 </div>
 
 <div class="card">
-  <div class="big">&gt;128 GB Mac</div>
+  <div class="big">128 GB Mac</div>
   <div class="note"><span class="tag c">computed</span>the smallest machine that holds it
-  at 8k context, assuming MLX can wire 75% of unified memory</div>
+  at 8k context, with the GPU limit raised (see below). At the out-of-the-box limit it needs more than a 128 GB Mac.</div>
 </div>
 
 <h2>What it needs as context grows</h2>
-<div class="card"><div class="row"><span>4k context</span><span>1.04 GB KV + 105.3 GB weights + 1.2 GB runtime = <b style="color:var(--ink)">107.5 GB</b>, over 128 GB</span></div><div class="row"><span>8k context</span><span>2.08 GB KV + 105.3 GB weights + 1.2 GB runtime = <b style="color:var(--ink)">108.6 GB</b>, over 128 GB</span></div><div class="row"><span>32k context</span><span>8.32 GB KV + 105.3 GB weights + 1.2 GB runtime = <b style="color:var(--ink)">114.8 GB</b>, over 128 GB</span></div><div class="row"><span>128k context</span><span>33.29 GB KV + 105.3 GB weights + 1.2 GB runtime = <b style="color:var(--ink)">139.8 GB</b>, over 128 GB</span></div></div>
+<div class="card"><div class="row"><span>4k context</span><span>1.04 GB KV + 105.3 GB weights + 1.2 GB runtime = <b style="color:var(--ink)">107.5 GB</b>, 128 GB Mac with the GPU limit raised</span></div><div class="row"><span>8k context</span><span>2.08 GB KV + 105.3 GB weights + 1.2 GB runtime = <b style="color:var(--ink)">108.6 GB</b>, 128 GB Mac with the GPU limit raised</span></div><div class="row"><span>32k context</span><span>8.32 GB KV + 105.3 GB weights + 1.2 GB runtime = <b style="color:var(--ink)">114.8 GB</b>, 128 GB Mac with the GPU limit raised</span></div><div class="row"><span>128k context</span><span>33.29 GB KV + 105.3 GB weights + 1.2 GB runtime = <b style="color:var(--ink)">139.8 GB</b>, over 128 GB</span></div></div>
 <p class="note">KV cache = 2 tensors x 62 layers x 8 KV heads
 x 128 head dim x 2 bytes (fp16) x tokens. Read straight off your
 <code>config.json</code>. Runtime overhead is the 1.2 GB I see for Python, MLX, the
@@ -81,9 +81,20 @@ tokenizer and activations on my own runs.</p>
 <h2>Mac by Mac</h2>
 <div class="card" style="overflow-x:auto">
 <table><thead><tr><th>Context</th><th>Needs</th><th>8</th><th>16</th><th>18</th><th>24</th><th>32</th><th>36</th><th>48</th><th>64</th><th>96</th><th>128</th></tr></thead>
-<tbody><tr><td>4k</td><td>107.5 GB</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="n">no</td></tr><tr><td>8k</td><td>108.6 GB</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="n">no</td></tr><tr><td>32k</td><td>114.8 GB</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="n">no</td></tr><tr><td>128k</td><td>139.8 GB</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="n">no</td></tr></tbody></table>
-<p class="note">Columns are unified memory in GB. "Tight" means it fits but leaves under
-2 GB for anything else, so expect swap once a browser is open.</p>
+<tbody><tr><td>4k</td><td>107.5 GB</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="t">raised</td></tr><tr><td>8k</td><td>108.6 GB</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="t">raised</td></tr><tr><td>32k</td><td>114.8 GB</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="t">raised</td></tr><tr><td>128k</td><td>139.8 GB</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="n">no</td><td class="n">no</td></tr></tbody></table>
+<p class="note">Columns are unified memory in GB. <span class="y">yes</span> fits at the
+default GPU limit, about 75% of unified memory. <span class="t">tight</span> fits there but
+leaves under 2 GB, so expect swap once a browser is open. <span class="t">raised</span> fits once the
+limit is raised to leave 8 GB for macOS. <span class="n">no</span> does not fit either way.</p>
+</div>
+
+<h2>Raising the GPU limit</h2>
+<div class="card">
+<div class="note" style="margin-top:0">macOS caps how much unified memory the GPU can wire,
+about 75% by default. That cap is a setting, not a hardware limit. On a 128 GB Mac this
+leaves 8 GB for macOS and hands the rest to MLX until the next reboot:</div>
+<pre style="margin-top:10px">sudo sysctl iogpu.wired_limit_mb=122880</pre>
+<div class="note">Swap in your own number: unified memory in GB, minus 8, times 1024.</div>
 </div>
 
 <h2>Run it</h2>
