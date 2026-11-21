@@ -93,6 +93,23 @@
   </table>
   </div>
 
+  <h2>Head-to-head model challenges (separate test — not comparable to the tables above)</h2>
+  <p style="margin:0 0 .5rem 0;">When a new vision building model drops, it fights the same-size model it would replace in our daily setup: same prompts, seeds and token caps, each model on its own chat template and sampling settings, both converted to MLX the same way, graded by code only (unit tests, end states, exact answers). The newcomer needs a clear margin to take the slot. Scores are newcomer / rival.</p>
+  <div class="tablewrap">
+  <table>
+    <thead><tr>
+      <th>Date</th>
+      <th>Newcomer vs rival</th>
+      <th>Overall</th>
+      <th>By category (newcomer / rival)</th>
+      <th>Winner</th>
+    </tr></thead>
+    <tbody>
+<tr><td>2026-11-20</td><td class="model">RadixArk/DaisyRose-27B<span class="params">vs Qwen/Qwen3.8-27B</span></td><td>94.9 / 88.2</td><td class="hw">tools 89 / 70 · coding 97 / 100 · vision 100 / 100 · longctx 100 / 100</td><td><strong>DaisyRose-27B</strong><span class="params">won by 6.7 points with no category collapse</span></td></tr>
+    </tbody>
+  </table>
+  </div>
+
   <h2>Vendor-reported (NOT Agent-12 numbers — credited, not competing)</h2>
   <p style="margin:0 0 .5rem 0;">Models we have not run through Agent-12 yet. These scores are the vendor's own published numbers on the vendor's own benchmarks, linked to the source. They are not comparable to the tables above and move into the local table the day they get a real run.</p>
   <div class="tablewrap">

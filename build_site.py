@@ -29,6 +29,7 @@ HERE = Path(__file__).resolve().parent
 RESULTS = HERE / "results"
 SITE = HERE / "site"
 OUT = HERE / "docs"
+CHALLENGES = HERE / "challenges"  # one JSON per head-to-head, written by model-challenge (11/20)
 
 
 def load_run(name):
@@ -72,7 +73,21 @@ def build():
             f'<td>{html.escape(r["scores"])}</td>'
             f'<td><a href="{html.escape(r["url"])}">{html.escape(r["source"])}</a></td>'
             f'<td class="hw">{html.escape(r.get("status", ""))}</td></tr>')
+    challenge_rows = []
+    for f in sorted(CHALLENGES.glob("*.json"), reverse=True) if CHALLENGES.exists() else []:
+        c = json.loads(f.read_text())
+        sc = c["scores"]
+        cats = " · ".join("%s %.0f / %.0f" % (k, sc["newcomer"]["categories"].get(k, 0), v)
+                          for k, v in sc["rival"]["categories"].items())
+        win = {"newcomer": c["newcomer"], "rival": c["rival"]}.get(c["winner"], "tie")
+        challenge_rows.append(
+            f'<tr><td>{html.escape(c["date"][:10])}</td>'
+            f'<td class="model">{html.escape(c["newcomer"])}<span class="params">vs {html.escape(c["rival"])}</span></td>'
+            f'<td>{sc["newcomer"]["overall"]:.1f} / {sc["rival"]["overall"]:.1f}</td>'
+            f'<td class="hw">{html.escape(cats)}</td>'
+            f'<td><strong>{html.escape(win.split("/")[-1])}</strong><span class="params">{html.escape(c.get("why", ""))}</span></td></tr>')
     page = TEMPLATE.replace("{{REPORTED_ROWS}}", "\n".join(reported_rows))
+    page = page.replace("{{CHALLENGE_ROWS}}", "\n".join(challenge_rows) or '<tr><td colspan="5">No head-to-heads yet.</td></tr>')
     page = page.replace("{{LOCAL_ROWS}}", "\n".join(local_rows))
     page = page.replace("{{CLOUD_ROWS}}", "\n".join(cloud_rows))
     page = page.replace("{{UPDATED}}", meta.get("updated", ""))
@@ -166,6 +181,23 @@ TEMPLATE = """<!doctype html>
     </tr></thead>
     <tbody>
 {{CLOUD_ROWS}}
+    </tbody>
+  </table>
+  </div>
+
+  <h2>Head-to-head model challenges (separate test — not comparable to the tables above)</h2>
+  <p style="margin:0 0 .5rem 0;">When a new vision building model drops, it fights the same-size model it would replace in our daily setup: same prompts, seeds and token caps, each model on its own chat template and sampling settings, both converted to MLX the same way, graded by code only (unit tests, end states, exact answers). The newcomer needs a clear margin to take the slot. Scores are newcomer / rival.</p>
+  <div class="tablewrap">
+  <table>
+    <thead><tr>
+      <th>Date</th>
+      <th>Newcomer vs rival</th>
+      <th>Overall</th>
+      <th>By category (newcomer / rival)</th>
+      <th>Winner</th>
+    </tr></thead>
+    <tbody>
+{{CHALLENGE_ROWS}}
     </tbody>
   </table>
   </div>
