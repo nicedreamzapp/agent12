@@ -75,7 +75,7 @@
       "scores": "MCP-Atlas 75.5 · SWE-bench Verified 76.0 · SWE-bench Pro 51.2 · Terminal-Bench 2.1 51.7 · τ3-Banking 23.5",
       "source": "Meta, official model card",
       "url": "https://huggingface.co/meta-models/Muse-Glimmer-30B",
-      "status": "Agent-12 run blocked until mlx_lm supports the muse_glimmer architecture"
+      "status": "Runs on Mac: our port was merged into mlx-lm on 2026-08-25 (ml-explore/mlx-lm #1710), output checked against Meta's reference. Full Agent-12 run not done yet."
     },
     {
       "display": "NVIDIA Nemotron 3 Nano Omni 30B-A3B",
@@ -83,7 +83,7 @@
       "scores": "OSWorld (computer use) 47.4",
       "source": "NVIDIA, official model card",
       "url": "https://huggingface.co/nvidia/Nemotron-3-Nano-Omni-30B-A3B-Reasoning-BF16",
-      "status": "Agent-12 run queued (our MLX runtime: nemotron-omni-mlx)"
+      "status": "Converted to MLX and run on Apple M5 on 2026-08-13, vision and audio both tested working. Full Agent-12 run not done yet."
     }
   ]
 }
